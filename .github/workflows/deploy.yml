@@ -1,4 +1,4 @@
-name: Build & Deploy Lambdas
+name: Build & Deploy
 
 on:
   push:
