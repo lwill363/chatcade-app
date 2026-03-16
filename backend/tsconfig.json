@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "target": "ES2021",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "outDir": "dist",
+    "rootDir": "src",
+    "strict": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+
+    // Allow smarter imports
+    "resolveJsonModule": true,
+    "isolatedModules": false,
+
+    // path aliases
+    "baseUrl": "./src",
+    "paths": {
+      "@features/*": ["features/*"],
+      "@common/*": ["common/*"]
+    },
+
+    // Emit declarations if you want to publish this as a package
+    "declaration": false
+  },
+
+  // Include
+  "include": ["src/**/*.ts", "src/**/*.json"],
+
+  // Exclude tests from build output
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/__tests__/*"]
+}

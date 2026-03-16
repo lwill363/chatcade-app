@@ -1,0 +1,58 @@
+{
+  "name": "chatcade-backend",
+  "packageManager": "yarn@4.11.0",
+  "private": true,
+  "version": "1.0.0",
+  "type": "commonjs",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev:auth": "tsx watch src/features/auth/auth-server.ts",
+    "dev:channels": "tsx watch src/features/channels/channels-server.ts",
+    "dev:friends": "tsx watch src/features/friends/friends-server.ts",
+    "dev:games": "tsx watch src/features/games/games-server.ts",
+    "dev:messages": "tsx watch src/features/messages/messages-server.ts",
+    "dev:users": "tsx watch src/features/users/users-server.ts",
+    "build": "tsup src --out-dir dist --format cjs --dts false",
+    "start": "node dist/index.js",
+    "lint": "eslint . --ext .ts",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "db:seed": "tsx prisma/seed.ts"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@fastify/aws-lambda": "^6.1.1",
+    "@fastify/cors": "^11.1.0",
+    "@prisma/adapter-pg": "^7.0.0",
+    "@prisma/client": "^7.0.0",
+    "bcryptjs": "^3.0.3",
+    "fastify": "^5.6.2",
+    "fastify-plugin": "^5.1.0",
+    "fastify-type-provider-zod": "^6.1.0",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.16.3",
+    "pino": "^10.1.0",
+    "prisma": "^7.0.0",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.159",
+    "@types/bcryptjs": "^3.0.0",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^24.10.1",
+    "@types/pg": "^8.15.6",
+    "dotenv": "^17.2.3",
+    "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-import": "^2.32.0",
+    "pino-pretty": "^13.1.2",
+    "prettier": "^3.6.2",
+    "ts-node": "^10.9.2",
+    "tsup": "^8.5.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.10"
+  }
+}

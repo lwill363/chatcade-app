@@ -1,0 +1,215 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Role {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  name        String   @unique @db.VarChar(50)
+  description String
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  users       User[]
+
+  @@map("roles")
+}
+
+model User {
+  id                     String          @id @default(uuid(7)) @db.Uuid
+  passwordHash           String          @map("password_hash")
+  username               String          @unique @db.VarChar(255)
+  emailAddress           String          @unique @map("email_address") @db.VarChar(255)
+  roleId                 String          @map("role_id") @db.Uuid
+  createdAt              DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  lastSeenAt             DateTime?       @map("last_seen_at")
+  receivedChannelInvites ChannelInvite[] @relation("ReceivedChannelInvites")
+  sentChannelInvites     ChannelInvite[] @relation("SentChannelInvites")
+  channelMemberships     ChannelMember[]
+  ownedChannels          Channel[]       @relation("OwnedChannels")
+  receivedFriendRequests Friendship[]    @relation("FriendshipAddressee")
+  sentFriendRequests     Friendship[]    @relation("FriendshipRequester")
+  gamePlayers            GamePlayer[]
+  gamesWon               Game[]          @relation("GameWinner")
+  authoredMessages       Message[]
+  refreshTokens          RefreshToken[]
+  profile                UserProfile?
+  role                   Role            @relation(fields: [roleId], references: [id])
+
+  @@map("users")
+}
+
+model UserProfile {
+  userId      String   @id @map("user_id") @db.Uuid
+  displayName String?  @map("display_name") @db.VarChar(100)
+  bio         String?  @db.VarChar(500)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_profiles")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  token     String   @unique
+  userId    String   @map("user_id") @db.Uuid
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model Channel {
+  id            String          @id @default(uuid(7)) @db.Uuid
+  type          ChannelType
+  name          String?         @db.VarChar(100)
+  description   String?         @db.VarChar(500)
+  ownerId       String?         @map("owner_id") @db.Uuid
+  createdAt     DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime        @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  lastMessageId String?         @map("last_message_id") @db.Uuid
+  invites       ChannelInvite[]
+  members       ChannelMember[]
+  lastMessage   Message?        @relation("ChannelLastMessage", fields: [lastMessageId], references: [id])
+  owner         User?           @relation("OwnedChannels", fields: [ownerId], references: [id])
+  games         Game[]
+  messages      Message[]       @relation("ChannelMessages")
+
+  @@map("channels")
+}
+
+model ChannelMember {
+  channelId  String   @map("channel_id") @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  lastReadAt DateTime @default(now()) @map("last_read_at") @db.Timestamptz(6)
+  joinedAt   DateTime @default(now()) @map("joined_at") @db.Timestamptz(6)
+  channel    Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([channelId, userId])
+  @@map("channel_members")
+}
+
+model Message {
+  id            String      @id @default(uuid(7)) @db.Uuid
+  content       String      @db.VarChar(2000)
+  channelId     String      @map("channel_id") @db.Uuid
+  authorId      String      @map("author_id") @db.Uuid
+  editedAt      DateTime?   @map("edited_at") @db.Timestamptz(6)
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  type          MessageType @default(USER)
+  deletedAt     DateTime?   @map("deleted_at") @db.Timestamptz(6)
+  metadata      Json?
+  lastMessageOf Channel[]   @relation("ChannelLastMessage")
+  author        User        @relation(fields: [authorId], references: [id])
+  channel       Channel     @relation("ChannelMessages", fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+}
+
+model Friendship {
+  id          String           @id @default(uuid()) @db.Uuid
+  requesterId String           @map("requester_id") @db.Uuid
+  addresseeId String           @map("addressee_id") @db.Uuid
+  status      FriendshipStatus @default(PENDING)
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+  addressee   User             @relation("FriendshipAddressee", fields: [addresseeId], references: [id], onDelete: Cascade)
+  requester   User             @relation("FriendshipRequester", fields: [requesterId], references: [id], onDelete: Cascade)
+
+  @@unique([requesterId, addresseeId])
+  @@map("friendships")
+}
+
+model Game {
+  id          String         @id @default(uuid(7)) @db.Uuid
+  channelId   String?        @map("channel_id") @db.Uuid
+  state       Json           @default("{}")
+  currentTurn String         @default("1") @map("current_turn")
+  status      GameStatus     @default(WAITING)
+  winnerId    String?        @map("winner_id") @db.Uuid
+  vsBot       Boolean        @default(false) @map("vs_bot")
+  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  difficulty  GameDifficulty @default(HARD) @map("difficulty")
+  expiresAt   DateTime?      @map("expires_at") @db.Timestamptz(6)
+  type        GameType       @default(TIC_TAC_TOE)
+  players     GamePlayer[]
+  channel     Channel?       @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  winner      User?          @relation("GameWinner", fields: [winnerId], references: [id])
+
+  @@map("games")
+}
+
+model GamePlayer {
+  gameId   String @map("game_id") @db.Uuid
+  userId   String @map("user_id") @db.Uuid
+  position Int
+  game     Game   @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([gameId, userId])
+  @@map("game_players")
+}
+
+model ChannelInvite {
+  id        String              @id @default(uuid(7)) @db.Uuid
+  channelId String              @map("channel_id") @db.Uuid
+  inviterId String              @map("inviter_id") @db.Uuid
+  inviteeId String              @map("invitee_id") @db.Uuid
+  status    ChannelInviteStatus @default(PENDING)
+  createdAt DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  channel   Channel             @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  invitee   User                @relation("ReceivedChannelInvites", fields: [inviteeId], references: [id])
+  inviter   User                @relation("SentChannelInvites", fields: [inviterId], references: [id])
+
+  @@unique([channelId, inviteeId])
+  @@map("channel_invites")
+}
+
+enum ChannelType {
+  ROOM
+  DM
+}
+
+enum MessageType {
+  USER
+  SYSTEM
+  GAME_INVITE
+  GAME_RESULT
+}
+
+enum ChannelInviteStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  BLOCKED
+}
+
+enum GameType {
+  TIC_TAC_TOE
+}
+
+enum GameStatus {
+  WAITING
+  ACTIVE
+  FINISHED
+}
+
+enum GameDifficulty {
+  EASY
+  MEDIUM
+  HARD
+}

@@ -1,0 +1,53 @@
+@import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=Fraunces:ital,wght@1,700&display=swap");
+
+@theme {
+  --color-bg: #1c1714;
+  --color-sidebar: #171210;
+  --color-inset: #1e1a16;
+  --color-surface: #232018;
+  --color-hover: #272219;
+  --color-raised: #2a2520;
+  --color-primary: #c4521a;
+  --color-primary-dark: #a83e10;
+  --color-foreground: #f0e8de;
+  --color-muted: #9e8e82;
+  --color-dim: #5a4e46;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Nunito', sans-serif;
+  background-color: var(--color-bg);
+  color: var(--color-foreground);
+  height: 100dvh;
+  overflow: hidden;
+}
+
+#root {
+  height: 100dvh;
+  display: flex;
+}
+
+/* Thin custom scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.08);
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.15);
+}
