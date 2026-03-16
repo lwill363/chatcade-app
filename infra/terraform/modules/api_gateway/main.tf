@@ -5,7 +5,7 @@ resource "aws_apigatewayv2_api" "this" {
   cors_configuration {
     allow_origins = ["*"]
     allow_methods = ["*"]
-    allow_headers = ["Authorization"]
+    allow_headers = ["Authorization", "Content-Type"]
   }
 
   tags = {
