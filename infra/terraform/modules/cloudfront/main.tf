@@ -123,6 +123,12 @@ resource "aws_cloudfront_distribution" "this" {
   tags = {
     Name = "${var.name}-distribution"
   }
+
+  lifecycle {
+    # Ignore WAF Web ACL changes — the free plan subscription prevents removing
+    # the association until the billing period ends. Remove this once off the plan.
+    ignore_changes = [web_acl_id]
+  }
 }
 
 # ─── S3 Bucket Policy ─────────────────────────────────────────────────────────
