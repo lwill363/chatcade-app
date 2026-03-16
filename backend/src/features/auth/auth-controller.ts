@@ -15,8 +15,8 @@ export async function login(
   request: FastifyRequest<{ Body: LoginDTO }>,
   reply: FastifyReply
 ) {
-  const { email, password } = request.body;
-  const result = await AuthService.login(email, password, request.server.prisma, authConfig.JWT_SECRET);
+  const { identifier, password } = request.body;
+  const result = await AuthService.login(identifier, password, request.server.prisma, authConfig.JWT_SECRET);
   return reply.send(result);
 }
 

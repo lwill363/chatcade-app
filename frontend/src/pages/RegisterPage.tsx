@@ -11,23 +11,30 @@ import { setStoredRefreshToken } from "@/services/api";
 import { getApiErrorMessage } from "@/types";
 import { useState } from "react";
 
-const schema = z.object({
-  username: z
-    .string()
-    .min(3, "At least 3 characters")
-    .max(50, "At most 50 characters")
-    .regex(/^[a-zA-Z0-9_-]+$/, "Letters, numbers, underscores, hyphens only"),
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(8, "At least 8 characters"),
-});
+const schema = z
+  .object({
+    username: z
+      .string()
+      .min(3, "At least 3 characters")
+      .max(50, "At most 50 characters")
+      .regex(/^[a-zA-Z0-9_-]+$/, "Letters, numbers, underscores, hyphens only"),
+    email: z.string().email("Invalid email address"),
+    password: z.string().min(8, "At least 8 characters"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
 
 type FormValues = z.infer<typeof schema>;
 
 export function RegisterPage() {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const [register_] = useRegisterMutation();
-  const [login, { isLoading }] = useLoginMutation();
+  const [register_, { isLoading: isRegistering }] = useRegisterMutation();
+  const [login, { isLoading: isLoggingIn }] = useLoginMutation();
+  const isLoading = isRegistering || isLoggingIn;
   const [registerError, setRegisterError] = useState<string | undefined>();
 
   const {
@@ -59,7 +66,7 @@ export function RegisterPage() {
 
     // Auto-login after successful registration
     const response = await login({
-      email: data.email,
+      identifier: data.email,
       password: data.password,
     }).unwrap();
 
@@ -118,6 +125,14 @@ export function RegisterPage() {
               autoComplete="new-password"
               error={errors.password?.message}
               {...register("password")}
+            />
+            <Input
+              label="Confirm Password"
+              type="password"
+              placeholder="••••••••"
+              autoComplete="new-password"
+              error={errors.confirmPassword?.message}
+              {...register("confirmPassword")}
             />
 
             {registerError && (

@@ -11,7 +11,7 @@ import { setStoredRefreshToken } from "@/services/api";
 import { getApiErrorMessage } from "@/types";
 
 const schema = z.object({
-  email: z.string().email("Invalid email address"),
+  identifier: z.string().min(1, "Email or username is required"),
   password: z.string().min(1, "Password is required"),
 });
 
@@ -29,7 +29,7 @@ export function LoginPage() {
   } = useForm<FormValues>({ resolver: zodResolver(schema) });
 
   const onSubmit = async (data: FormValues) => {
-    const response = await login(data).unwrap();
+    const response = await login({ identifier: data.identifier, password: data.password }).unwrap();
     dispatch(
       setCredentials({
         accessToken: response.accessToken,
@@ -70,12 +70,11 @@ export function LoginPage() {
             className="flex flex-col gap-5"
           >
             <Input
-              label="Email"
-              type="email"
-              placeholder="you@example.com"
-              autoComplete="email"
-              error={errors.email?.message}
-              {...register("email")}
+              label="Email or Username"
+              placeholder="you@example.com or cooluser123"
+              autoComplete="username"
+              error={errors.identifier?.message}
+              {...register("identifier")}
             />
             <Input
               label="Password"

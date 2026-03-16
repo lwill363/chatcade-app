@@ -54,12 +54,15 @@ export async function register(
 }
 
 export async function login(
-  email: string,
+  identifier: string,
   password: string,
   prisma: PrismaClient,
   jwtSecret: string
 ) {
-  const user = await AuthRepository.findByEmail(prisma, email);
+  const isEmail = identifier.includes("@");
+  const user = isEmail
+    ? await AuthRepository.findByEmail(prisma, identifier)
+    : await AuthRepository.findByUsername(prisma, identifier);
 
   if (!user) {
     throw new UnauthorizedError("Invalid credentials");

@@ -43,6 +43,19 @@ export function findByEmail(prisma: PrismaClient, email: string) {
   });
 }
 
+export function findByUsername(prisma: PrismaClient, username: string) {
+  return prisma.user.findUnique({
+    where: { username },
+    select: {
+      id: true,
+      username: true,
+      emailAddress: true,
+      passwordHash: true,
+      role: { select: { name: true } },
+    },
+  });
+}
+
 export function findById(prisma: PrismaClient, id: string) {
   return prisma.user.findUnique({
     where: { id },
