@@ -47,7 +47,7 @@ resource "aws_lambda_function" "this" {
     security_group_ids = [aws_security_group.this.id]
   }
 
-  runtime     = "nodejs22.x"
+  runtime     = "nodejs24.x"
   handler     = "index.handler"
   role        = aws_iam_role.this.arn
   timeout     = var.timeout
