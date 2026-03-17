@@ -54,6 +54,7 @@ export type Channel =
       name: string;
       description: string | null;
       ownerId: string;
+      lastMessageId: string | null;
       unreadCount: number;
       latestAt: string | null;
       latestMessage: { content: string; authorUsername: string } | null;
@@ -63,6 +64,7 @@ export type Channel =
       type: "DM";
       partnerId: string;
       partnerUsername: string;
+      lastMessageId: string | null;
       unreadCount: number;
       latestAt: string | null;
       latestMessage: { content: string; authorUsername: string } | null;

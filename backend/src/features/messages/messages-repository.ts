@@ -13,13 +13,6 @@ const MESSAGE_SELECT = {
   author: { select: { id: true, username: true } },
 } as const;
 
-export function findMembership(prisma: PrismaClient, channelId: string, userId: string) {
-  return prisma.channelMember.findUnique({
-    where: { channelId_userId: { channelId, userId } },
-    select: { channelId: true },
-  });
-}
-
 export function findChannelOwner(prisma: PrismaClient, channelId: string) {
   return prisma.channel.findUnique({
     where: { id: channelId },
@@ -37,15 +30,12 @@ export async function createMessage(
       where: { id: data.channelId },
       data: { lastMessageId: message.id },
     });
+    await tx.channelMember.update({
+      where: { channelId_userId: { channelId: data.channelId, userId: data.authorId } },
+      data: { lastReadMessageId: message.id },
+    });
     return message;
   });
-}
-
-export function createSystemMessage(
-  prisma: PrismaClient,
-  data: { channelId: string; authorId: string; content: "joined" | "left" | "removed" }
-) {
-  return prisma.message.create({ data: { ...data, type: "SYSTEM" }, select: MESSAGE_SELECT });
 }
 
 export async function findMessages(

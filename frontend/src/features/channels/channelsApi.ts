@@ -86,10 +86,11 @@ export const channelsApi = api.injectEndpoints({
       invalidatesTags: [{ type: "Invite", id: "LIST" }],
     }),
 
-    markChannelRead: builder.mutation<void, { channelId: string }>({
-      query: ({ channelId }) => ({
+    markChannelRead: builder.mutation<void, { channelId: string; messageId: string }>({
+      query: ({ channelId, messageId }) => ({
         url: `/api/channels/${channelId}/read`,
         method: "PUT",
+        body: { messageId },
       }),
       invalidatesTags: [{ type: "Channel", id: "LIST" }],
     }),

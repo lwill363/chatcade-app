@@ -5,6 +5,11 @@ export const ChannelIdParamsSchema = z.object({
 });
 export type ChannelIdParamsDTO = z.infer<typeof ChannelIdParamsSchema>;
 
+export const MarkReadBodySchema = z.object({
+  messageId: z.uuid(),
+});
+export type MarkReadBodyDTO = z.infer<typeof MarkReadBodySchema>;
+
 export const UserIdParamsSchema = z.object({
   userId: z.uuid(),
 });

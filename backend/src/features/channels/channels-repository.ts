@@ -57,13 +57,6 @@ export function deleteChannel(prisma: PrismaClient, channelId: string) {
 
 // ── Membership ────────────────────────────────────────────────────────────────
 
-export function findMembership(prisma: PrismaClient, channelId: string, userId: string) {
-  return prisma.channelMember.findUnique({
-    where: { channelId_userId: { channelId, userId } },
-    select: { channelId: true },
-  });
-}
-
 export function createMembership(prisma: PrismaClient, channelId: string, userId: string) {
   return prisma.channelMember.create({ data: { channelId, userId } });
 }
@@ -121,20 +114,13 @@ export async function findOrCreateDirectChannel(
 
 // ── Read tracking ─────────────────────────────────────────────────────────────
 
-export function markRead(prisma: PrismaClient, channelId: string, userId: string) {
-  return prisma.channelMember.update({
-    where: { channelId_userId: { channelId, userId } },
-    data: { lastReadAt: new Date() },
-  });
-}
-
 // ── Channel list ──────────────────────────────────────────────────────────────
 
-export async function listChannelsForUser(prisma: PrismaClient, userId: string) {
-  const memberships = await prisma.channelMember.findMany({
+export function listChannelsForUser(prisma: PrismaClient, userId: string) {
+  return prisma.channelMember.findMany({
     where: { userId },
     select: {
-      lastReadAt: true,
+      lastReadMessage: { select: { createdAt: true } },
       channel: {
         select: {
           id: true,
@@ -142,6 +128,7 @@ export async function listChannelsForUser(prisma: PrismaClient, userId: string) 
           name: true,
           description: true,
           ownerId: true,
+          lastMessageId: true,
           members: {
             where: { userId: { not: userId } },
             select: { user: { select: { id: true, username: true } } },
@@ -157,63 +144,6 @@ export async function listChannelsForUser(prisma: PrismaClient, userId: string) 
         },
       },
     },
-  });
-
-  const withUnread = await Promise.all(
-    memberships.map(async (m) => {
-      const unreadCount = await prisma.message.count({
-        where: {
-          channelId: m.channel.id,
-          createdAt: { gt: m.lastReadAt },
-          NOT: { authorId: userId },
-        },
-      });
-
-      const latest = m.channel.lastMessage;
-      const latestMessage = latest
-        ? { content: latest.content, authorUsername: latest.author.username }
-        : null;
-
-      if (m.channel.type === "ROOM") {
-        return {
-          id: m.channel.id,
-          type: "ROOM" as const,
-          name: m.channel.name!,
-          description: m.channel.description ?? null,
-          ownerId: m.channel.ownerId!,
-          unreadCount,
-          latestAt: latest?.createdAt.toISOString() ?? null,
-          latestMessage,
-        };
-      } else {
-        const partner = m.channel.members[0]?.user;
-        return {
-          id: m.channel.id,
-          type: "DM" as const,
-          partnerId: partner?.id ?? "",
-          partnerUsername: partner?.username ?? "",
-          unreadCount,
-          latestAt: latest?.createdAt.toISOString() ?? null,
-          latestMessage,
-        };
-      }
-    })
-  );
-
-  const sorted = withUnread.sort((a, b) => {
-    if (!a.latestAt && !b.latestAt) return 0;
-    if (!a.latestAt) return 1;
-    if (!b.latestAt) return -1;
-    return new Date(b.latestAt).getTime() - new Date(a.latestAt).getTime();
-  });
-
-  // Deduplicate DM channels per partner (keep the most recently active one)
-  const seenPartners = new Set<string>();
-  return sorted.filter((ch) => {
-    if (ch.type !== "DM") return true;
-    if (seenPartners.has(ch.partnerId)) return false;
-    seenPartners.add(ch.partnerId);
-    return true;
   });
 }
 

@@ -8,6 +8,7 @@ import {
   CreateRoomDTO,
   UpdateRoomDTO,
   SendInviteDTO,
+  MarkReadBodyDTO,
 } from "@features/channels/channels-types";
 
 export async function listChannels(request: FastifyRequest, reply: FastifyReply) {
@@ -122,9 +123,9 @@ export async function declineInvite(
 }
 
 export async function markRead(
-  request: FastifyRequest<{ Params: ChannelIdParamsDTO }>,
+  request: FastifyRequest<{ Params: ChannelIdParamsDTO; Body: MarkReadBodyDTO }>,
   reply: FastifyReply
 ) {
-  await ChannelsService.markRead(request.params.channelId, request.user!.principalId, request.server.prisma);
+  await ChannelsService.markRead(request.params.channelId, request.user!.principalId, request.body.messageId, request.server.prisma);
   return reply.code(204).send();
 }

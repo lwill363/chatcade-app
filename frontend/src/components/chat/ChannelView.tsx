@@ -18,9 +18,11 @@ export function ChannelView({ channel }: ChannelViewProps) {
   const [markChannelRead] = useMarkChannelReadMutation();
 
   useEffect(() => {
-    void markChannelRead({ channelId: channel.id });
+    if (channel.lastMessageId) {
+      void markChannelRead({ channelId: channel.id, messageId: channel.lastMessageId });
+    }
     dispatch(closeGamePanel());
-  }, [channel.id, markChannelRead, dispatch]);
+  }, [channel.id, channel.lastMessageId, markChannelRead, dispatch]);
 
   const title = channel.type === "ROOM" ? channel.name : channel.partnerUsername;
   const subtitle = channel.type === "ROOM" ? channel.description : null;

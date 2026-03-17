@@ -8,6 +8,7 @@ import {
   CreateRoomSchema,
   UpdateRoomSchema,
   SendInviteSchema,
+  MarkReadBodySchema,
 } from "@features/channels/channels-types";
 import { authenticate } from "@common/middleware/authenticate";
 
@@ -93,7 +94,7 @@ export async function channelsRoutes(app: FastifyInstance) {
 
   app.put(
     "/channels/:channelId/read",
-    { schema: { params: ChannelIdParamsSchema } },
+    { schema: { params: ChannelIdParamsSchema, body: MarkReadBodySchema } },
     ChannelsController.markRead
   );
 }

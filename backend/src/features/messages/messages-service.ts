@@ -1,10 +1,11 @@
 import { PrismaClient } from "generated/prisma/client";
 import * as MessagesRepository from "@features/messages/messages-repository";
+import { findMembership } from "@common/membership/membership-repository";
 import { ForbiddenError, NotFoundError } from "@common/errors";
 import { ListMessagesQueryDTO } from "@features/messages/messages-types";
 
 async function assertMember(channelId: string, userId: string, prisma: PrismaClient) {
-  const member = await MessagesRepository.findMembership(prisma, channelId, userId);
+  const member = await findMembership(prisma, channelId, userId);
   if (!member) throw new ForbiddenError("You are not a member of this channel");
 }
 
@@ -58,3 +59,4 @@ export async function deleteMessage(
 
   await MessagesRepository.deleteMessage(prisma, messageId);
 }
+

@@ -85,12 +85,13 @@ model Channel {
 }
 
 model ChannelMember {
-  channelId  String   @map("channel_id") @db.Uuid
-  userId     String   @map("user_id") @db.Uuid
-  lastReadAt DateTime @default(now()) @map("last_read_at") @db.Timestamptz(6)
-  joinedAt   DateTime @default(now()) @map("joined_at") @db.Timestamptz(6)
-  channel    Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channelId         String   @map("channel_id") @db.Uuid
+  userId            String   @map("user_id") @db.Uuid
+  lastReadMessageId String?  @map("last_read_message_id") @db.Uuid
+  joinedAt          DateTime @default(now()) @map("joined_at") @db.Timestamptz(6)
+  channel           Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastReadMessage   Message? @relation("MemberLastRead", fields: [lastReadMessageId], references: [id])
 
   @@id([channelId, userId])
   @@map("channel_members")
@@ -107,9 +108,10 @@ model Message {
   type          MessageType @default(USER)
   deletedAt     DateTime?   @map("deleted_at") @db.Timestamptz(6)
   metadata      Json?
-  lastMessageOf Channel[]   @relation("ChannelLastMessage")
-  author        User        @relation(fields: [authorId], references: [id])
-  channel       Channel     @relation("ChannelMessages", fields: [channelId], references: [id], onDelete: Cascade)
+  lastMessageOf    Channel[]       @relation("ChannelLastMessage")
+  memberLastReads  ChannelMember[] @relation("MemberLastRead")
+  author           User            @relation(fields: [authorId], references: [id])
+  channel          Channel         @relation("ChannelMessages", fields: [channelId], references: [id], onDelete: Cascade)
 
   @@map("messages")
 }
