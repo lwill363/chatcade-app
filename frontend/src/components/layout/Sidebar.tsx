@@ -156,6 +156,7 @@ export function Sidebar() {
           type: "DM",
           partnerId: userId,
           partnerUsername,
+          lastMessageId: null,
           unreadCount: 0,
           latestAt: null,
           latestMessage: null,

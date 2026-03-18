@@ -7,8 +7,8 @@ import { setTyping, clearTyping } from "@/features/ui/uiSlice";
 import type { Message } from "@/types";
 
 type WsEvent =
-  | { type: "message.created"; channelId: string; message: Record<string, unknown> }
-  | { type: "message.updated"; channelId: string; message: Record<string, unknown> }
+  | { type: "message.created"; channelId: string; message: Message }
+  | { type: "message.updated"; channelId: string; message: Message }
   | { type: "message.deleted"; channelId: string; messageId: string }
   | { type: "typing.start"; channelId: string; userId: string; username: string }
   | { type: "typing.stop"; channelId: string; userId: string }
@@ -33,7 +33,7 @@ export function useWebSocket() {
         case "message.created": {
           dispatch(
             messagesApi.util.updateQueryData("listMessages", { channelId: event.channelId, limit: 50 }, (draft) => {
-              const msg = event.message as Message;
+              const msg = event.message;
               if (!draft.some((m) => m.id === msg.id)) {
                 draft.push(msg);
                 if (draft.length > 50) draft.splice(0, draft.length - 50);
@@ -46,7 +46,7 @@ export function useWebSocket() {
         case "message.updated": {
           dispatch(
             messagesApi.util.updateQueryData("listMessages", { channelId: event.channelId, limit: 50 }, (draft) => {
-              const msg = event.message as Message;
+              const msg = event.message;
               const idx = draft.findIndex((m) => m.id === msg.id);
               if (idx !== -1) draft[idx] = msg;
             })

@@ -65,6 +65,7 @@ export function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProps) {
       name: room.name,
       description: room.description,
       ownerId: room.ownerId,
+      lastMessageId: null,
       unreadCount: 0,
       latestAt: null,
       latestMessage: null,

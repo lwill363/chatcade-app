@@ -92,6 +92,7 @@ function AllTab() {
           type: "DM",
           partnerId: friend.userId,
           partnerUsername: friend.username,
+          lastMessageId: null,
           unreadCount: 0,
           latestAt: null,
           latestMessage: null,
