@@ -21,3 +21,8 @@ output "frontend_distribution_id" {
 output "frontend_url" {
   value = "https://${module.cloudfront.domain_name}"
 }
+
+output "ws_url" {
+  description = "WebSocket API Gateway URL (wss://). Pass as VITE_WS_URL to the frontend build."
+  value       = aws_apigatewayv2_stage.ws.invoke_url
+}

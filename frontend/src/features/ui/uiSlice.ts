@@ -1,12 +1,18 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type { Channel } from "@/types";
 
+interface TypingEntry {
+  userId: string;
+  username: string;
+}
+
 interface UIState {
   selectedChannelId: string | null;
   selectedChannel: Channel | null;
   showMembersSidebar: boolean;
   showGamePanel: boolean;
   activeView: "chat" | "friends" | "games" | "invites";
+  typingUsers: Record<string, TypingEntry[]>; // channelId → users currently typing
 }
 
 const initialState: UIState = {
@@ -15,6 +21,7 @@ const initialState: UIState = {
   showMembersSidebar: true,
   showGamePanel: false,
   activeView: "chat",
+  typingUsers: {},
 };
 
 const uiSlice = createSlice({
@@ -46,8 +53,19 @@ const uiSlice = createSlice({
     setActiveView(state, action: PayloadAction<"chat" | "friends" | "games" | "invites">) {
       state.activeView = action.payload;
     },
+    setTyping(state, action: PayloadAction<{ channelId: string; userId: string; username: string }>) {
+      const { channelId, userId, username } = action.payload;
+      const existing = state.typingUsers[channelId] ?? [];
+      state.typingUsers[channelId] = [...existing.filter((u) => u.userId !== userId), { userId, username }];
+    },
+    clearTyping(state, action: PayloadAction<{ channelId: string; userId: string }>) {
+      const { channelId, userId } = action.payload;
+      if (state.typingUsers[channelId]) {
+        state.typingUsers[channelId] = state.typingUsers[channelId].filter((u) => u.userId !== userId);
+      }
+    },
   },
 });
 
-export const { selectChannel, clearChannel, toggleMembersSidebar, openGamePanel, closeGamePanel, toggleGamePanel, setActiveView } = uiSlice.actions;
+export const { selectChannel, clearChannel, toggleMembersSidebar, openGamePanel, closeGamePanel, toggleGamePanel, setActiveView, setTyping, clearTyping } = uiSlice.actions;
 export default uiSlice.reducer;

@@ -6,6 +6,7 @@ const messagesConfigSchema = baseConfigSchema.extend({
   MESSAGES_SERVICE_NAME: z.literal("messages"),
   DATABASE_URL: z.url(),
   JWT_SECRET: z.string().min(32),
+  WS_CALLBACK_URL: z.url(),
 });
 
 export const messagesConfig = messagesConfigSchema.parse(process.env);

@@ -1,6 +1,7 @@
 import { useAppDispatch, useAppSelector } from "@/app/hooks";
 import { closeGamePanel } from "@/features/ui/uiSlice";
 import { useListChannelsQuery } from "@/features/channels/channelsApi";
+import { useWebSocket } from "@/hooks/useWebSocket";
 import { Sidebar } from "./Sidebar";
 import { MembersSidebar } from "./MembersSidebar";
 import { ChannelView } from "@/components/chat/ChannelView";
@@ -10,6 +11,7 @@ import { GamesView } from "@/components/games/GamesView";
 import { InvitesView } from "@/components/invites/InvitesView";
 
 export function AppLayout() {
+  useWebSocket();
   const dispatch = useAppDispatch();
   const { selectedChannel: staleChannel, selectedChannelId, showMembersSidebar, showGamePanel, activeView } = useAppSelector((s) => s.ui);
   const { data: channels } = useListChannelsQuery();

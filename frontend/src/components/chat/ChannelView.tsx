@@ -30,9 +30,14 @@ export function ChannelView({ channel }: ChannelViewProps) {
   const partnerUsername = channel.type === "DM" ? channel.partnerUsername : undefined;
   const partnerId = channel.type === "DM" ? channel.partnerId : undefined;
 
+  const currentUserId = useAppSelector((s) => s.auth.user?.id);
+  const typingUsers = useAppSelector((s) =>
+    (s.ui.typingUsers[channel.id] ?? []).filter((u) => u.userId !== currentUserId)
+  );
+
   const { data: partnerPresence } = useGetPresenceQuery(
     partnerId ? [partnerId] : [],
-    { skip: !partnerId, pollingInterval: 30_000 }
+    { skip: !partnerId }
   );
   const partnerStatus = (() => {
     const entry = partnerPresence?.[0];
@@ -92,6 +97,13 @@ export function ChannelView({ channel }: ChannelViewProps) {
       </div>
 
       <MessageList key={channel.id} channelId={channel.id} channelOwnerId={channelOwnerId} />
+      <div className="px-5 h-5 shrink-0 flex items-center">
+        {typingUsers.length > 0 && (
+          <p className="text-xs text-dim animate-pulse">
+            {typingUsers.map((u) => u.username).join(", ")} {typingUsers.length === 1 ? "is" : "are"} typing...
+          </p>
+        )}
+      </div>
       <MessageInput channelId={channel.id} placeholder={`Message ${title}`} />
     </div>
   );

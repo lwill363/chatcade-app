@@ -1,8 +1,10 @@
 import { PrismaClient } from "generated/prisma/client";
 import * as MessagesRepository from "@features/messages/messages-repository";
 import { findMembership } from "@common/membership/membership-repository";
+import { broadcastToChannel } from "@common/broadcast/broadcast-service";
 import { ForbiddenError, NotFoundError } from "@common/errors";
 import { ListMessagesQueryDTO } from "@features/messages/messages-types";
+import { messagesConfig } from "@features/messages/messages-config";
 
 async function assertMember(channelId: string, userId: string, prisma: PrismaClient) {
   const member = await findMembership(prisma, channelId, userId);
@@ -16,7 +18,11 @@ export async function sendMessage(
   prisma: PrismaClient
 ) {
   await assertMember(channelId, userId, prisma);
-  return MessagesRepository.createMessage(prisma, { content, channelId, authorId: userId });
+  const message = await MessagesRepository.createMessage(prisma, { content, channelId, authorId: userId });
+  void broadcastToChannel(prisma, messagesConfig.WS_CALLBACK_URL, channelId, {
+    type: "message.created", channelId, message: message as Record<string, unknown>,
+  });
+  return message;
 }
 
 export async function listMessages(
@@ -39,7 +45,11 @@ export async function editMessage(
   if (!message) throw new NotFoundError("Message");
   if (message.deletedAt) throw new ForbiddenError("Cannot edit a deleted message");
   if (message.authorId !== userId) throw new ForbiddenError("You can only edit your own messages");
-  return MessagesRepository.updateMessage(prisma, messageId, content);
+  const updated = await MessagesRepository.updateMessage(prisma, messageId, content);
+  void broadcastToChannel(prisma, messagesConfig.WS_CALLBACK_URL, message.channelId, {
+    type: "message.updated", channelId: message.channelId, message: updated as Record<string, unknown>,
+  });
+  return updated;
 }
 
 export async function deleteMessage(
@@ -58,5 +68,8 @@ export async function deleteMessage(
   }
 
   await MessagesRepository.deleteMessage(prisma, messageId);
+  void broadcastToChannel(prisma, messagesConfig.WS_CALLBACK_URL, message.channelId, {
+    type: "message.deleted", channelId: message.channelId, messageId,
+  });
 }
 

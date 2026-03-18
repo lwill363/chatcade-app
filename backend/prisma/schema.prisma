@@ -37,6 +37,7 @@ model User {
   gamesWon               Game[]          @relation("GameWinner")
   authoredMessages       Message[]
   refreshTokens          RefreshToken[]
+  wsConnections          WebSocketConnection[]
   profile                UserProfile?
   role                   Role            @relation(fields: [roleId], references: [id])
 
@@ -159,6 +160,16 @@ model GamePlayer {
 
   @@id([gameId, userId])
   @@map("game_players")
+}
+
+model WebSocketConnection {
+  connectionId    String   @id @map("connection_id")
+  userId          String   @map("user_id") @db.Uuid
+  connectedAt     DateTime @default(now()) @map("connected_at") @db.Timestamptz(6)
+  lastHeartbeatAt DateTime @default(now()) @map("last_heartbeat_at") @db.Timestamptz(6)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("websocket_connections")
 }
 
 model ChannelInvite {

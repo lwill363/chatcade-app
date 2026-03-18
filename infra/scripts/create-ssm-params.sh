@@ -105,6 +105,9 @@ put "$ROOT/games/node_env"      "$NODE_ENV"
 put "$ROOT/games/port"          "$GAMES_PORT"
 put "$ROOT/games/service_name"  "$GAMES_SERVICE_NAME"
 
+# ─── WebSockets ───────────────────────────────────────────────────────────────
+put "$ROOT/websockets/database_url"  "$DATABASE_URL"  SecureString
+
 # ─── Migration ────────────────────────────────────────────────────────────────
 put "$ROOT/migration/database_url"  "$DATABASE_URL"  SecureString
 

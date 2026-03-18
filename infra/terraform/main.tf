@@ -47,6 +47,10 @@ module "rds" {
     module.messages_lambda.security_group_id,
     module.friends_lambda.security_group_id,
     module.games_lambda.security_group_id,
+    module.ws_connect_lambda.security_group_id,
+    module.ws_disconnect_lambda.security_group_id,
+    module.ws_default_lambda.security_group_id,
+    module.ws_cleanup_lambda.security_group_id,
     module.migration_ecs.security_group_id,
   ]
 }
@@ -207,6 +211,7 @@ locals {
     MESSAGES_PORT         = data.aws_ssm_parameter.messages_port.value
     MESSAGES_SERVICE_NAME = data.aws_ssm_parameter.messages_service_name.value
     JWT_SECRET            = data.aws_ssm_parameter.jwt_secret.value
+    WS_CALLBACK_URL       = local.ws_callback_url
   }
 }
 

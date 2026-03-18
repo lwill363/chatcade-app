@@ -112,6 +112,7 @@ jobs:
           echo "public_subnet_ids=$(terraform output -json public_subnet_ids | jq -r '.[]' | paste -sd, -)" >> $GITHUB_OUTPUT
           echo "migration_ecs_security_group_id=$(terraform output migration_ecs_security_group_id)" >> $GITHUB_OUTPUT
           echo "api_gateway_url=$(terraform output -raw api_gateway_url)" >> $GITHUB_OUTPUT
+          echo "ws_url=$(terraform output -raw ws_url)" >> $GITHUB_OUTPUT
           echo "frontend_bucket=$(terraform output -raw frontend_bucket)" >> $GITHUB_OUTPUT
           echo "frontend_distribution_id=$(terraform output -raw frontend_distribution_id)" >> $GITHUB_OUTPUT
 
@@ -123,6 +124,8 @@ jobs:
       - name: Build frontend
         working-directory: frontend
         if: github.ref == 'refs/heads/main'
+        env:
+          VITE_WS_URL: ${{ steps.tfout.outputs.ws_url }}
         run: yarn build
 
       - name: Deploy frontend to S3 and invalidate CloudFront

@@ -1,6 +1,7 @@
 import { useRef, useState, type KeyboardEvent, type FormEvent } from "react";
 import { useSendMessageMutation } from "@/features/messages/messagesApi";
 import { useCreateGameMutation, useGetActiveGameQuery } from "@/features/games/gamesApi";
+import { wsService } from "@/services/wsService";
 
 
 interface SlashCommand {
@@ -29,6 +30,7 @@ interface MessageInputProps {
 
 export function MessageInput({ channelId, placeholder }: MessageInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [slashQuery, setSlashQuery] = useState<string | null>(null);
   const [gameError, setGameError] = useState<string | null>(null);
   const [sendMessage, { isLoading }] = useSendMessageMutation();
@@ -64,9 +66,19 @@ export function MessageInput({ channelId, placeholder }: MessageInputProps) {
     }
   };
 
+  const stopTyping = () => {
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+    wsService.send({ type: "typing.stop", channelId });
+  };
+
   const submit = async () => {
     const content = textareaRef.current?.value.trim();
     if (!content || isLoading) return;
+
+    stopTyping();
 
     // Intercept slash commands
     if (content.startsWith("/")) {
@@ -111,6 +123,15 @@ export function MessageInput({ channelId, placeholder }: MessageInputProps) {
       setSlashQuery(val.slice(1).toLowerCase());
     } else {
       setSlashQuery(null);
+    }
+
+    // Typing indicator
+    if (val.trim()) {
+      wsService.send({ type: "typing.start", channelId });
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = setTimeout(stopTyping, 3000);
+    } else {
+      stopTyping();
     }
   };
 

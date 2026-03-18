@@ -19,10 +19,9 @@ export function MessageList({ channelId, channelOwnerId }: MessageListProps) {
   const [olderMessages, setOlderMessages] = useState<Message[]>([]);
   const [hasMoreOlder, setHasMoreOlder] = useState(true);
 
-  // Always polls for latest 50 messages — RTK Query is the source of truth
+  // Latest 50 messages — updated in real-time via WebSocket events
   const { data: latestMessages, isFetching: isFetchingLatest } = useListMessagesQuery(
-    { channelId, limit: 50 },
-    { pollingInterval: 5000 }
+    { channelId, limit: 50 }
   );
 
   // Fires only when cursor is set (Load more button)

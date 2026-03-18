@@ -111,7 +111,7 @@ export function Sidebar() {
   const { selectedChannelId, activeView } = useAppSelector((s) => s.ui);
   const currentUser = useAppSelector((s) => s.auth.user);
 
-  const { data: channels, isLoading } = useListChannelsQuery();
+  const { data: channels, isLoading } = useListChannelsQuery(undefined, { pollingInterval: 60_000 });
   const [getOrCreateDm] = useGetOrCreateDirectChannelMutation();
 
   const [showCreateRoom, setShowCreateRoom] = useState(false);
@@ -134,7 +134,7 @@ export function Sidebar() {
   const roomUnread = rooms.reduce((sum, c) => sum + c.unreadCount, 0);
 
   const dmPartnerIds = dms.map((c) => c.partnerId);
-  const { data: dmPresence } = useGetPresenceQuery(dmPartnerIds, { skip: dmPartnerIds.length === 0, pollingInterval: 30_000 });
+  const { data: dmPresence } = useGetPresenceQuery(dmPartnerIds, { skip: dmPartnerIds.length === 0 });
 
   const getDmPresence = (partnerId: string): "online" | "away" | "offline" => {
     const entry = dmPresence?.find((p) => p.userId === partnerId);
