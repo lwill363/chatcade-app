@@ -44,7 +44,7 @@ function InviteCard({ invite }: { invite: ChannelInvite }) {
 }
 
 export function InvitesView() {
-  const { data: invites = [], isLoading } = useListMyInvitesQuery(undefined, { pollingInterval: 30000 });
+  const { data: invites = [], isLoading } = useListMyInvitesQuery(undefined);
 
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">

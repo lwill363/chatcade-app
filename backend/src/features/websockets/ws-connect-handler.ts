@@ -6,6 +6,7 @@ import jwt from "jsonwebtoken";
 import { createPrismaClient } from "@common/utils/create-prisma-client";
 import { wsConnectConfig } from "@features/websockets/ws-config";
 import { createConnection } from "@features/websockets/ws-repository";
+import { broadcastPresence } from "@features/websockets/ws-presence";
 
 // @types/aws-lambda omits queryStringParameters from the WebSocket event type,
 // but API Gateway does pass it on $connect requests.
@@ -32,6 +33,7 @@ export const handler = async (
   const prisma = createPrismaClient(wsConnectConfig.DATABASE_URL);
   try {
     await createConnection(prisma, event.requestContext.connectionId, userId);
+    void broadcastPresence(prisma, wsConnectConfig.WS_CALLBACK_URL, userId);
   } finally {
     await prisma.$disconnect();
   }

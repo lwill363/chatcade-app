@@ -3,6 +3,8 @@ import * as GamesRepository from "@features/games/games-repository";
 import * as TicTacToe from "@features/games/engines/tictactoe";
 import { ConflictError, ForbiddenError, NotFoundError } from "@common/errors";
 import { CreateGameDTO, CreateSoloGameDTO } from "@features/games/games-types";
+import { broadcastToChannel } from "@common/broadcast/broadcast-service";
+import { gamesConfig } from "@features/games/games-config";
 
 type Game = Awaited<ReturnType<typeof GamesRepository.findGameById>>;
 
@@ -122,6 +124,10 @@ export async function createGame(
     data: { lastMessageId: inviteMessage.id },
   });
 
+  void broadcastToChannel(prisma, gamesConfig.WS_CALLBACK_URL, channelId, {
+    type: "game.updated", channelId, gameId: game.id,
+  });
+
   return game;
 }
 
@@ -137,7 +143,15 @@ export async function joinGame(gameId: string, userId: string, prisma: PrismaCli
   if (game.players.length >= maxPlayers) throw new ConflictError("This game is full");
 
   const nextPosition = game.players.length + 1;
-  return GamesRepository.joinGame(prisma, gameId, userId, nextPosition);
+  const updated = await GamesRepository.joinGame(prisma, gameId, userId, nextPosition);
+
+  if (game.channelId) {
+    void broadcastToChannel(prisma, gamesConfig.WS_CALLBACK_URL, game.channelId, {
+      type: "game.updated", channelId: game.channelId, gameId,
+    });
+  }
+
+  return updated;
 }
 
 export async function makeMove(
@@ -164,6 +178,12 @@ export async function makeMove(
 
   if (result.finished && game.channelId) {
     await postGameResult(prisma, game.channelId, userId, gameId, "Tic-Tac-Toe", result.winnerLabel);
+  }
+
+  if (game.channelId) {
+    void broadcastToChannel(prisma, gamesConfig.WS_CALLBACK_URL, game.channelId, {
+      type: "game.updated", channelId: game.channelId, gameId,
+    });
   }
 
   return updated;
@@ -205,6 +225,12 @@ export async function forfeitGame(gameId: string, userId: string, prisma: Prisma
         otherPlayer?.user.username ?? null
       );
     }
+  }
+
+  if (game.channelId) {
+    void broadcastToChannel(prisma, gamesConfig.WS_CALLBACK_URL, game.channelId, {
+      type: "game.updated", channelId: game.channelId, gameId,
+    });
   }
 
   return updated;

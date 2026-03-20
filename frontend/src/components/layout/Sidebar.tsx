@@ -111,7 +111,7 @@ export function Sidebar() {
   const { selectedChannelId, activeView } = useAppSelector((s) => s.ui);
   const currentUser = useAppSelector((s) => s.auth.user);
 
-  const { data: channels, isLoading } = useListChannelsQuery(undefined, { pollingInterval: 60_000 });
+  const { data: channels, isLoading } = useListChannelsQuery(undefined);
   const [getOrCreateDm] = useGetOrCreateDirectChannelMutation();
 
   const [showCreateRoom, setShowCreateRoom] = useState(false);
@@ -119,7 +119,7 @@ export function Sidebar() {
   const [showUserSettings, setShowUserSettings] = useState(false);
   const [dmExpanded, setDmExpanded] = useState(true);
   const [roomsExpanded, setRoomsExpanded] = useState(true);
-  const { data: invites = [] } = useListMyInvitesQuery(undefined, { pollingInterval: 30000 });
+  const { data: invites = [] } = useListMyInvitesQuery(undefined);
 
   const byLatest = (a: Channel, b: Channel) => {
     if (!a.latestAt && !b.latestAt) return 0;

@@ -24,10 +24,6 @@ export const usersApi = api.injectEndpoints({
       query: (q) => ({ url: "/api/users/search", params: { q } }),
     }),
 
-    heartbeat: builder.mutation<void, void>({
-      query: () => ({ url: "/api/users/me/heartbeat", method: "POST" }),
-    }),
-
     getPresence: builder.query<PresenceDto[], string[]>({
       query: (userIds) => `/api/users/presence?userIds=${userIds.join(",")}`,
       providesTags: [{ type: "Presence", id: "LIST" }],
@@ -41,6 +37,5 @@ export const {
   useUpdateMyProfileMutation,
   useGetUserByIdQuery,
   useSearchUsersQuery,
-  useHeartbeatMutation,
   useGetPresenceQuery,
 } = usersApi;

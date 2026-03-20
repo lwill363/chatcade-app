@@ -5,6 +5,8 @@ import { findMembership } from "@common/membership/membership-repository";
 import { markMemberRead, countUnreadMessages } from "@common/read-tracking/read-tracking-repository";
 import { ConflictError, ForbiddenError, NotFoundError } from "@common/errors";
 import { CreateRoomDTO, UpdateRoomDTO } from "@features/channels/channels-types";
+import { broadcastToUsers } from "@common/broadcast/broadcast-service";
+import { channelsConfig } from "@features/channels/channels-config";
 
 export async function listChannels(userId: string, prisma: PrismaClient) {
   const memberships = await ChannelsRepository.listChannelsForUser(prisma, userId);
@@ -178,6 +180,10 @@ export async function sendInvite(
   if (existingInvite) throw new ConflictError("User already has a pending invite to this room");
 
   await ChannelsRepository.createInvite(prisma, channelId, inviterId, inviteeId);
+  void broadcastToUsers(prisma, channelsConfig.WS_CALLBACK_URL, [inviteeId], {
+    type: "invite.created",
+    invite: {},
+  });
 }
 
 export async function listMyInvites(userId: string, prisma: PrismaClient) {

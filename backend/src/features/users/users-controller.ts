@@ -31,14 +31,6 @@ export async function searchUsers(
   return reply.send(result);
 }
 
-export async function heartbeatHandler(
-  request: FastifyRequest,
-  reply: FastifyReply
-) {
-  await UsersService.heartbeat(request.user!.principalId, request.server.prisma);
-  return reply.code(204).send();
-}
-
 export async function getPresenceHandler(
   request: FastifyRequest<{ Querystring: PresenceQueryDTO }>,
   reply: FastifyReply

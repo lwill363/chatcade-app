@@ -14,8 +14,6 @@ export async function usersRoutes(app: FastifyInstance) {
     UsersController.updateMe
   );
 
-  app.post("/me/heartbeat", UsersController.heartbeatHandler);
-
   app.get(
     "/presence",
     { schema: { querystring: PresenceQuerySchema } },

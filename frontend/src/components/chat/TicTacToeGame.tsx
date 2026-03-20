@@ -20,10 +20,7 @@ interface TicTacToeGameProps {
 export function TicTacToeGame({ channelId }: TicTacToeGameProps) {
   const currentUser = useAppSelector((s) => s.auth.user);
 
-  const { data: game, isLoading } = useGetActiveGameQuery(
-    { channelId },
-    { pollingInterval: 2500 }
-  );
+  const { data: game, isLoading } = useGetActiveGameQuery({ channelId });
 
   const [createGame, { isLoading: isCreating }] = useCreateGameMutation();
   const [joinGame, { isLoading: isJoining }] = useJoinGameMutation();

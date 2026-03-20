@@ -32,7 +32,6 @@ export function GamesView() {
   const [difficulty, setDifficulty] = useState<Difficulty>("MEDIUM");
 
   const { data: game, isLoading } = useGetActiveSoloGameQuery(undefined, {
-    pollingInterval: screen === "playing" ? 2000 : 0,
     skip: screen === "info" || screen === "difficulty",
   });
 

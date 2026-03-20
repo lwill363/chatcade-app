@@ -9,6 +9,10 @@ export type WsEvent =
   | { type: "typing.start"; channelId: string; userId: string; username: string }
   | { type: "typing.stop"; channelId: string; userId: string }
   | { type: "presence.updated"; userId: string; isOnline: boolean; isAway: boolean }
+  | { type: "invite.created"; invite: Record<string, unknown> }
+  | { type: "game.updated"; channelId: string; gameId: string }
+  | { type: "friend_request.created" }
+  | { type: "friend_request.responded"; action: "accept" | "decline" }
   | { type: "pong" };
 
 // Broadcast an event to all active connections for the given user IDs.

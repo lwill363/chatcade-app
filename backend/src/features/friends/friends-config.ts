@@ -6,6 +6,7 @@ const friendsConfigSchema = baseConfigSchema.extend({
   FRIENDS_SERVICE_NAME: z.literal("friends"),
   DATABASE_URL: z.url(),
   JWT_SECRET: z.string().min(32),
+  WS_CALLBACK_URL: z.url(),
 });
 
 export const friendsConfig = friendsConfigSchema.parse(process.env);

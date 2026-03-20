@@ -6,6 +6,7 @@ const channelsConfigSchema = baseConfigSchema.extend({
   CHANNELS_SERVICE_NAME: z.literal("channels"),
   DATABASE_URL: z.url(),
   JWT_SECRET: z.string().min(32),
+  WS_CALLBACK_URL: z.url(),
 });
 
 export const channelsConfig = channelsConfigSchema.parse(process.env);

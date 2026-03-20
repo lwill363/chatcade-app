@@ -6,6 +6,7 @@ const gamesConfigSchema = baseConfigSchema.extend({
   GAMES_SERVICE_NAME: z.literal("games"),
   DATABASE_URL: z.url(),
   JWT_SECRET: z.string().min(32),
+  WS_CALLBACK_URL: z.url(),
 });
 
 export const gamesConfig = gamesConfigSchema.parse(process.env);

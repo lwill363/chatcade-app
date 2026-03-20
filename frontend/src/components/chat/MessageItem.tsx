@@ -212,8 +212,7 @@ function GameInviteMessage({ message, currentUserId }: { message: Message; curre
   const [joinGame, { isLoading: isJoining }] = useJoinGameMutation();
   const [forfeitGame, { isLoading: isCancelling }] = useForfeitGameMutation();
   const { data: activeGame, isLoading: isGameLoading } = useGetActiveGameQuery(
-    { channelId: message.channelId },
-    { pollingInterval: 2500 }
+    { channelId: message.channelId }
   );
   const metadata = message.metadata;
 

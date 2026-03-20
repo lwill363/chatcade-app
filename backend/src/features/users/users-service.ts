@@ -70,10 +70,6 @@ export async function getUserById(userId: string, prisma: PrismaClient) {
   };
 }
 
-export async function heartbeat(userId: string, prisma: PrismaClient) {
-  await UsersRepository.updateLastSeen(prisma, userId);
-}
-
 const ONLINE_THRESHOLD_MS = 2 * 60 * 1000;   // 2 minutes
 const AWAY_THRESHOLD_MS = 15 * 60 * 1000;    // 15 minutes
 

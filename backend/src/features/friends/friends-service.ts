@@ -1,6 +1,8 @@
 import { PrismaClient } from "generated/prisma/client";
 import * as FriendsRepository from "@features/friends/friends-repository";
 import { ForbiddenError, NotFoundError } from "@common/errors";
+import { broadcastToUsers } from "@common/broadcast/broadcast-service";
+import { friendsConfig } from "@features/friends/friends-config";
 
 export async function sendFriendRequest(
   requesterId: string,
@@ -10,7 +12,11 @@ export async function sendFriendRequest(
   if (requesterId === addresseeId) {
     throw new ForbiddenError("You cannot send a friend request to yourself");
   }
-  return FriendsRepository.sendFriendRequest(prisma, requesterId, addresseeId);
+  const result = await FriendsRepository.sendFriendRequest(prisma, requesterId, addresseeId);
+  void broadcastToUsers(prisma, friendsConfig.WS_CALLBACK_URL, [addresseeId], {
+    type: "friend_request.created",
+  });
+  return result;
 }
 
 export async function listFriends(userId: string, prisma: PrismaClient) {
@@ -35,6 +41,10 @@ export async function respondToRequest(
   if (result === null && action === "accept") {
     throw new NotFoundError("Friend request");
   }
+  void broadcastToUsers(prisma, friendsConfig.WS_CALLBACK_URL, [requesterId], {
+    type: "friend_request.responded",
+    action,
+  });
   return result;
 }
 

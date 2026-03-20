@@ -13,6 +13,10 @@ type WsEvent =
   | { type: "typing.start"; channelId: string; userId: string; username: string }
   | { type: "typing.stop"; channelId: string; userId: string }
   | { type: "presence.updated"; userId: string; isOnline: boolean; isAway: boolean }
+  | { type: "invite.created" }
+  | { type: "game.updated"; channelId: string; gameId: string }
+  | { type: "friend_request.created" }
+  | { type: "friend_request.responded"; action: "accept" | "decline" }
   | { type: "pong" };
 
 const WS_URL = import.meta.env.VITE_WS_URL as string | undefined;
@@ -85,6 +89,25 @@ export function useWebSocket() {
         }
         case "presence.updated": {
           dispatch(api.util.invalidateTags([{ type: "Presence", id: "LIST" }]));
+          break;
+        }
+        case "invite.created": {
+          dispatch(api.util.invalidateTags([{ type: "Invite", id: "LIST" }]));
+          break;
+        }
+        case "game.updated": {
+          dispatch(api.util.invalidateTags([{ type: "Game", id: `channel-${event.channelId}` }]));
+          break;
+        }
+        case "friend_request.created": {
+          dispatch(api.util.invalidateTags([{ type: "FriendRequest", id: "INCOMING" }]));
+          break;
+        }
+        case "friend_request.responded": {
+          dispatch(api.util.invalidateTags([
+            { type: "Friend", id: "LIST" },
+            { type: "FriendRequest", id: "OUTGOING" },
+          ]));
           break;
         }
       }
