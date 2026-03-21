@@ -1,5 +1,16 @@
 data "aws_caller_identity" "current" {}
 
+resource "aws_sns_topic" "lambda_alarms" {
+  name = "${var.project_name}-${var.environment}-lambda-alarms"
+}
+
+resource "aws_sns_topic_subscription" "alarm_email" {
+  count     = var.alarm_email != "" ? 1 : 0
+  topic_arn = aws_sns_topic.lambda_alarms.arn
+  protocol  = "email"
+  endpoint  = var.alarm_email
+}
+
 data "aws_availability_zones" "available" {
   state = "available"
 }
@@ -100,7 +111,8 @@ module "auth_lambda" {
   filename    = "${path.root}/../../backend/dist/auth.zip"
   memory_size = 256
   timeout     = 10
-  environment = local.auth_environment
+  environment   = local.auth_environment
+  alarm_sns_arn = aws_sns_topic.lambda_alarms.arn
 }
 
 # ─── Users Lambda ─────────────────────────────────────────────────────────────
@@ -138,10 +150,11 @@ module "users_lambda" {
   name        = "${var.project_name}-${var.environment}-users-lambda"
   vpc_id      = module.vpc.vpc_id
   subnet_ids  = module.vpc.private_subnet_ids
-  filename    = "${path.root}/../../backend/dist/users.zip"
-  memory_size = 256
-  timeout     = 10
-  environment = local.users_environment
+  filename      = "${path.root}/../../backend/dist/users.zip"
+  memory_size   = 256
+  timeout       = 10
+  environment   = local.users_environment
+  alarm_sns_arn = aws_sns_topic.lambda_alarms.arn
 }
 
 # ─── Channels Lambda ──────────────────────────────────────────────────────────
@@ -179,10 +192,11 @@ module "channels_lambda" {
   name        = "${var.project_name}-${var.environment}-channels-lambda"
   vpc_id      = module.vpc.vpc_id
   subnet_ids  = module.vpc.private_subnet_ids
-  filename    = "${path.root}/../../backend/dist/channels.zip"
-  memory_size = 256
-  timeout     = 10
-  environment = local.channels_environment
+  filename      = "${path.root}/../../backend/dist/channels.zip"
+  memory_size   = 256
+  timeout       = 10
+  environment   = local.channels_environment
+  alarm_sns_arn = aws_sns_topic.lambda_alarms.arn
 }
 
 # ─── Messages Lambda ──────────────────────────────────────────────────────────
@@ -221,10 +235,11 @@ module "messages_lambda" {
   name        = "${var.project_name}-${var.environment}-messages-lambda"
   vpc_id      = module.vpc.vpc_id
   subnet_ids  = module.vpc.private_subnet_ids
-  filename    = "${path.root}/../../backend/dist/messages.zip"
-  memory_size = 256
-  timeout     = 10
-  environment = local.messages_environment
+  filename      = "${path.root}/../../backend/dist/messages.zip"
+  memory_size   = 256
+  timeout       = 10
+  environment   = local.messages_environment
+  alarm_sns_arn = aws_sns_topic.lambda_alarms.arn
 }
 
 # ─── Friends Lambda ───────────────────────────────────────────────────────────
@@ -253,6 +268,7 @@ locals {
     FRIENDS_PORT         = data.aws_ssm_parameter.friends_port.value
     FRIENDS_SERVICE_NAME = data.aws_ssm_parameter.friends_service_name.value
     JWT_SECRET           = data.aws_ssm_parameter.jwt_secret.value
+    WS_CALLBACK_URL      = local.ws_callback_url
   }
 }
 
@@ -262,10 +278,11 @@ module "friends_lambda" {
   name        = "${var.project_name}-${var.environment}-friends-lambda"
   vpc_id      = module.vpc.vpc_id
   subnet_ids  = module.vpc.private_subnet_ids
-  filename    = "${path.root}/../../backend/dist/friends.zip"
-  memory_size = 256
-  timeout     = 10
-  environment = local.friends_environment
+  filename      = "${path.root}/../../backend/dist/friends.zip"
+  memory_size   = 256
+  timeout       = 10
+  environment   = local.friends_environment
+  alarm_sns_arn = aws_sns_topic.lambda_alarms.arn
 }
 
 # ─── Games Lambda ─────────────────────────────────────────────────────────────
@@ -303,10 +320,11 @@ module "games_lambda" {
   name        = "${var.project_name}-${var.environment}-games-lambda"
   vpc_id      = module.vpc.vpc_id
   subnet_ids  = module.vpc.private_subnet_ids
-  filename    = "${path.root}/../../backend/dist/games.zip"
-  memory_size = 256
-  timeout     = 10
-  environment = local.games_environment
+  filename      = "${path.root}/../../backend/dist/games.zip"
+  memory_size   = 256
+  timeout       = 10
+  environment   = local.games_environment
+  alarm_sns_arn = aws_sns_topic.lambda_alarms.arn
 }
 
 # ─── API Gateway ─────────────────────────────────────────────────────────────

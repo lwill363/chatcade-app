@@ -39,7 +39,13 @@ resource "aws_iam_role_policy_attachment" "lambda_exec_vpc_access" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
 
+resource "aws_cloudwatch_log_group" "this" {
+  name              = "/aws/lambda/${var.name}"
+  retention_in_days = var.log_retention_days
+}
+
 resource "aws_lambda_function" "this" {
+  depends_on = [aws_cloudwatch_log_group.this]
   function_name = var.name
 
   vpc_config {
@@ -60,4 +66,21 @@ resource "aws_lambda_function" "this" {
   environment {
     variables = var.environment
   }
+}
+
+resource "aws_cloudwatch_metric_alarm" "errors" {
+  alarm_name          = "${var.name}-errors"
+  alarm_description   = "Lambda errors for ${var.name}"
+  namespace           = "AWS/Lambda"
+  metric_name         = "Errors"
+  dimensions          = { FunctionName = var.name }
+  statistic           = "Sum"
+  period              = 60
+  evaluation_periods  = 1
+  threshold           = 1
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  treat_missing_data  = "notBreaching"
+
+  alarm_actions = var.alarm_sns_arn != "" ? [var.alarm_sns_arn] : []
+  ok_actions    = var.alarm_sns_arn != "" ? [var.alarm_sns_arn] : []
 }

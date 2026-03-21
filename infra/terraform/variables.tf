@@ -21,3 +21,9 @@ variable "project_ssm_ps_root_path" {
 variable "image_uri" {
   type = string
 }
+
+variable "alarm_email" {
+  description = "Email address to notify when a Lambda error alarm fires. Leave empty to disable notifications."
+  type        = string
+  default     = "REDACTED_EMAIL"
+}

@@ -29,43 +29,48 @@ data "aws_ssm_parameter" "ws_db_url" {
 }
 
 module "ws_connect_lambda" {
-  source      = "./modules/lambda"
-  name        = "${var.project_name}-${var.environment}-ws-connect"
-  vpc_id      = module.vpc.vpc_id
-  subnet_ids  = module.vpc.private_subnet_ids
-  filename    = "${path.root}/../../backend/dist/ws-connect.zip"
-  memory_size = 128
-  timeout     = 10
+  source        = "./modules/lambda"
+  name          = "${var.project_name}-${var.environment}-ws-connect"
+  vpc_id        = module.vpc.vpc_id
+  subnet_ids    = module.vpc.private_subnet_ids
+  filename      = "${path.root}/../../backend/dist/ws-connect.zip"
+  memory_size   = 128
+  timeout       = 10
+  alarm_sns_arn = aws_sns_topic.lambda_alarms.arn
   environment = {
-    DATABASE_URL = data.aws_ssm_parameter.ws_db_url.value
-    JWT_SECRET   = data.aws_ssm_parameter.jwt_secret.value
-    NODE_ENV     = "production"
+    DATABASE_URL    = data.aws_ssm_parameter.ws_db_url.value
+    JWT_SECRET      = data.aws_ssm_parameter.jwt_secret.value
+    WS_CALLBACK_URL = local.ws_callback_url
+    NODE_ENV        = "production"
   }
 }
 
 module "ws_disconnect_lambda" {
-  source      = "./modules/lambda"
-  name        = "${var.project_name}-${var.environment}-ws-disconnect"
-  vpc_id      = module.vpc.vpc_id
-  subnet_ids  = module.vpc.private_subnet_ids
-  filename    = "${path.root}/../../backend/dist/ws-disconnect.zip"
-  memory_size = 128
-  timeout     = 10
+  source        = "./modules/lambda"
+  name          = "${var.project_name}-${var.environment}-ws-disconnect"
+  vpc_id        = module.vpc.vpc_id
+  subnet_ids    = module.vpc.private_subnet_ids
+  filename      = "${path.root}/../../backend/dist/ws-disconnect.zip"
+  memory_size   = 128
+  timeout       = 10
+  alarm_sns_arn = aws_sns_topic.lambda_alarms.arn
   environment = {
-    DATABASE_URL = data.aws_ssm_parameter.ws_db_url.value
-    JWT_SECRET   = data.aws_ssm_parameter.jwt_secret.value
-    NODE_ENV     = "production"
+    DATABASE_URL    = data.aws_ssm_parameter.ws_db_url.value
+    JWT_SECRET      = data.aws_ssm_parameter.jwt_secret.value
+    WS_CALLBACK_URL = local.ws_callback_url
+    NODE_ENV        = "production"
   }
 }
 
 module "ws_default_lambda" {
-  source      = "./modules/lambda"
-  name        = "${var.project_name}-${var.environment}-ws-default"
-  vpc_id      = module.vpc.vpc_id
-  subnet_ids  = module.vpc.private_subnet_ids
-  filename    = "${path.root}/../../backend/dist/ws-default.zip"
-  memory_size = 128
-  timeout     = 10
+  source        = "./modules/lambda"
+  name          = "${var.project_name}-${var.environment}-ws-default"
+  vpc_id        = module.vpc.vpc_id
+  subnet_ids    = module.vpc.private_subnet_ids
+  filename      = "${path.root}/../../backend/dist/ws-default.zip"
+  memory_size   = 128
+  timeout       = 10
+  alarm_sns_arn = aws_sns_topic.lambda_alarms.arn
   environment = {
     DATABASE_URL    = data.aws_ssm_parameter.ws_db_url.value
     JWT_SECRET      = data.aws_ssm_parameter.jwt_secret.value
@@ -75,13 +80,14 @@ module "ws_default_lambda" {
 }
 
 module "ws_cleanup_lambda" {
-  source      = "./modules/lambda"
-  name        = "${var.project_name}-${var.environment}-ws-cleanup"
-  vpc_id      = module.vpc.vpc_id
-  subnet_ids  = module.vpc.private_subnet_ids
-  filename    = "${path.root}/../../backend/dist/ws-cleanup.zip"
-  memory_size = 128
-  timeout     = 30
+  source        = "./modules/lambda"
+  name          = "${var.project_name}-${var.environment}-ws-cleanup"
+  vpc_id        = module.vpc.vpc_id
+  subnet_ids    = module.vpc.private_subnet_ids
+  filename      = "${path.root}/../../backend/dist/ws-cleanup.zip"
+  memory_size   = 128
+  timeout       = 30
+  alarm_sns_arn = aws_sns_topic.lambda_alarms.arn
   environment = {
     DATABASE_URL = data.aws_ssm_parameter.ws_db_url.value
     JWT_SECRET   = data.aws_ssm_parameter.jwt_secret.value
