@@ -70,6 +70,35 @@ export async function getUserById(userId: string, prisma: PrismaClient) {
   };
 }
 
+export async function deleteAccount(userId: string, prisma: PrismaClient) {
+  // Handle owned rooms: transfer ownership or delete if empty
+  const ownedRooms = await prisma.channel.findMany({
+    where: { ownerId: userId, type: "ROOM" },
+    include: {
+      members: {
+        where: { userId: { not: userId } },
+        orderBy: { joinedAt: "asc" },
+        take: 1,
+      },
+    },
+  });
+
+  for (const room of ownedRooms) {
+    if (room.members.length > 0) {
+      await prisma.channel.update({
+        where: { id: room.id },
+        data: { ownerId: room.members[0].userId },
+      });
+    } else {
+      await prisma.channel.delete({ where: { id: room.id } });
+    }
+  }
+
+  // Delete the user — cascades to memberships, refresh tokens, WS connections, friendships
+  // Messages retain their content with authorId set to NULL via FK SET NULL
+  await prisma.user.delete({ where: { id: userId } });
+}
+
 const ONLINE_THRESHOLD_MS = 2 * 60 * 1000;   // 2 minutes
 const AWAY_THRESHOLD_MS = 15 * 60 * 1000;    // 15 minutes
 

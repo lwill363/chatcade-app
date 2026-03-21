@@ -31,6 +31,11 @@ export async function searchUsers(
   return reply.send(result);
 }
 
+export async function deleteMe(request: FastifyRequest, reply: FastifyReply) {
+  await UsersService.deleteAccount(request.user!.principalId, request.server.prisma);
+  return reply.status(204).send();
+}
+
 export async function getPresenceHandler(
   request: FastifyRequest<{ Querystring: PresenceQueryDTO }>,
   reply: FastifyReply

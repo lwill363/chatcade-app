@@ -1,19 +1,37 @@
 type MessageHandler = (event: unknown) => void;
+type ConnectHandler = (isReconnect: boolean) => void;
 
 class WsService {
   private ws: WebSocket | null = null;
   private handlers = new Set<MessageHandler>();
+  private connectHandlers = new Set<ConnectHandler>();
   private pingInterval: ReturnType<typeof setInterval> | null = null;
   private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
   private reconnectDelay = 1000;
   private wsUrl: string | null = null;
   private token: string | null = null;
   private closed = false;
+  private hasConnectedBefore = false;
 
   connect(wsUrl: string, token: string) {
+    this.closed = false;
+    // Cancel any pending reconnect from the old session
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+    // Close the previous WebSocket without triggering a reconnect
+    const prev = this.ws;
+    if (prev) {
+      this.ws = null;
+      prev.onclose = null;
+      prev.close();
+    }
+    this.stopPing();
     this.wsUrl = wsUrl;
     this.token = token;
-    this.closed = false;
+    this.reconnectDelay = 1000;
+    this.hasConnectedBefore = false;
     this.open();
   }
 
@@ -26,6 +44,9 @@ class WsService {
     ws.onopen = () => {
       this.reconnectDelay = 1000;
       this.startPing();
+      const isReconnect = this.hasConnectedBefore;
+      this.hasConnectedBefore = true;
+      this.connectHandlers.forEach((h) => h(isReconnect));
     };
 
     ws.onmessage = (ev) => {
@@ -68,6 +89,11 @@ class WsService {
   onMessage(handler: MessageHandler): () => void {
     this.handlers.add(handler);
     return () => this.handlers.delete(handler);
+  }
+
+  onConnect(handler: ConnectHandler): () => void {
+    this.connectHandlers.add(handler);
+    return () => this.connectHandlers.delete(handler);
   }
 
   private startPing() {

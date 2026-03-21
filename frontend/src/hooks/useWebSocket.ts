@@ -31,7 +31,20 @@ export function useWebSocket() {
 
     wsService.connect(WS_URL, accessToken);
 
-    const unsubscribe = wsService.onMessage((raw) => {
+    const unsubscribeConnect = wsService.onConnect((isReconnect) => {
+      if (isReconnect) {
+        // Invalidate anything that could have changed while we were disconnected
+        dispatch(api.util.invalidateTags([
+          { type: "Channel", id: "LIST" },
+          { type: "Friend", id: "LIST" },
+          { type: "FriendRequest", id: "INCOMING" },
+          { type: "FriendRequest", id: "OUTGOING" },
+          { type: "Invite", id: "LIST" },
+        ]));
+      }
+    });
+
+    const unsubscribeMessage = wsService.onMessage((raw) => {
       const event = raw as WsEvent;
       switch (event.type) {
         case "message.created": {
@@ -114,7 +127,8 @@ export function useWebSocket() {
     });
 
     return () => {
-      unsubscribe();
+      unsubscribeConnect();
+      unsubscribeMessage();
       wsService.disconnect();
       for (const t of typingTimeouts.current.values()) clearTimeout(t);
       typingTimeouts.current.clear();

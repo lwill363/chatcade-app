@@ -21,7 +21,7 @@ export async function listChannels(userId: string, prisma: PrismaClient) {
 
       const latest = m.channel.lastMessage;
       const latestMessage = latest
-        ? { content: latest.content, authorUsername: latest.author.username }
+        ? { content: latest.content, authorUsername: latest.author?.username ?? "Deleted User" }
         : null;
 
       if (m.channel.type === "ROOM") {

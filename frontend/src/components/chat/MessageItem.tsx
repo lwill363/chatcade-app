@@ -42,7 +42,8 @@ export function MessageItem({ message, isFirst, channelOwnerId }: MessageItemPro
   const [editMessage, { isLoading: isEditLoading }] = useEditMessageMutation();
   const [deleteMessage, { isLoading: isDeleteLoading }] = useDeleteMessageMutation();
 
-  const isOwnMessage = currentUser?.id === message.author.id;
+  const authorName = message.author?.username ?? "Deleted User";
+  const isOwnMessage = !!message.author && currentUser?.id === message.author.id;
   const isSpaceOwner = currentUser?.id === channelOwnerId;
   const isDeleted = !!message.deletedAt;
   const canDelete = !isDeleted && (isOwnMessage || isSpaceOwner);
@@ -88,7 +89,7 @@ export function MessageItem({ message, isFirst, channelOwnerId }: MessageItemPro
     return (
       <div className="flex items-center justify-center px-4 py-1.5">
         <span className="text-xs text-dim">
-          <span className="font-semibold text-muted">{message.author.username}</span> {eventText}
+          <span className="font-semibold text-muted">{authorName}</span> {eventText}
         </span>
       </div>
     );
@@ -110,7 +111,7 @@ export function MessageItem({ message, isFirst, channelOwnerId }: MessageItemPro
     <div className={`flex items-end gap-2 px-4 py-0.5 ${isOwnMessage ? "flex-row-reverse" : ""}`}>
       <div className="w-8 shrink-0">
         {!isOwnMessage && isFirst ? (
-          <Avatar username={message.author.username} size="sm" />
+          <Avatar username={authorName} size="sm" />
         ) : !isOwnMessage ? (
           <div className="w-8" />
         ) : null}
@@ -118,7 +119,7 @@ export function MessageItem({ message, isFirst, channelOwnerId }: MessageItemPro
 
       <div className={`flex flex-col max-w-[70%] ${isOwnMessage ? "items-end" : "items-start"}`}>
         {isFirst && !isOwnMessage && (
-          <span className="text-[11px] font-extrabold text-muted mb-1 ml-1">{message.author.username}</span>
+          <span className="text-[11px] font-extrabold text-muted mb-1 ml-1">{authorName}</span>
         )}
 
         <div
@@ -216,7 +217,8 @@ function GameInviteMessage({ message, currentUserId }: { message: Message; curre
   );
   const metadata = message.metadata;
 
-  const isAuthor = currentUserId === message.author.id;
+  const authorName = message.author?.username ?? "Deleted User";
+  const isAuthor = !!message.author && currentUserId === message.author.id;
   const timeStr = format(new Date(message.createdAt), "h:mm a");
 
   const isThisGame = activeGame?.id === metadata?.gameId;
@@ -254,7 +256,7 @@ function GameInviteMessage({ message, currentUserId }: { message: Message; curre
         <div className="flex-1 min-w-0">
           <p className="text-xs text-muted leading-snug">
             <span className="font-semibold text-foreground">
-              {isAuthor ? "You" : message.author.username}
+              {isAuthor ? "You" : authorName}
             </span>
             {isOver
               ? <> played <span className="font-semibold text-foreground">{metadata.gameName}</span></>

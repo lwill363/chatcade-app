@@ -14,6 +14,8 @@ export async function usersRoutes(app: FastifyInstance) {
     UsersController.updateMe
   );
 
+  app.delete("/me", UsersController.deleteMe);
+
   app.get(
     "/presence",
     { schema: { querystring: PresenceQuerySchema } },

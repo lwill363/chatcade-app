@@ -38,7 +38,7 @@ export interface Message {
   deletedAt: string | null;
   createdAt: string;
   updatedAt: string;
-  author: { id: string; username: string };
+  author: { id: string; username: string } | null;
 }
 
 export interface Member {

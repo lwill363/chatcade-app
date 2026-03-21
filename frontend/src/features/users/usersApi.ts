@@ -29,6 +29,10 @@ export const usersApi = api.injectEndpoints({
       providesTags: [{ type: "Presence", id: "LIST" }],
       keepUnusedDataFor: 60,
     }),
+
+    deleteAccount: builder.mutation<void, void>({
+      query: () => ({ url: "/api/users/me", method: "DELETE" }),
+    }),
   }),
 });
 
@@ -38,4 +42,5 @@ export const {
   useGetUserByIdQuery,
   useSearchUsersQuery,
   useGetPresenceQuery,
+  useDeleteAccountMutation,
 } = usersApi;

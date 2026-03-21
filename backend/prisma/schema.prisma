@@ -102,7 +102,7 @@ model Message {
   id            String      @id @default(uuid(7)) @db.Uuid
   content       String      @db.VarChar(2000)
   channelId     String      @map("channel_id") @db.Uuid
-  authorId      String      @map("author_id") @db.Uuid
+  authorId      String?     @map("author_id") @db.Uuid
   editedAt      DateTime?   @map("edited_at") @db.Timestamptz(6)
   createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -111,7 +111,7 @@ model Message {
   metadata      Json?
   lastMessageOf    Channel[]       @relation("ChannelLastMessage")
   memberLastReads  ChannelMember[] @relation("MemberLastRead")
-  author           User            @relation(fields: [authorId], references: [id])
+  author           User?           @relation(fields: [authorId], references: [id], onDelete: SetNull)
   channel          Channel         @relation("ChannelMessages", fields: [channelId], references: [id], onDelete: Cascade)
 
   @@map("messages")
@@ -146,7 +146,7 @@ model Game {
   type        GameType       @default(TIC_TAC_TOE)
   players     GamePlayer[]
   channel     Channel?       @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  winner      User?          @relation("GameWinner", fields: [winnerId], references: [id])
+  winner      User?          @relation("GameWinner", fields: [winnerId], references: [id], onDelete: SetNull)
 
   @@map("games")
 }
@@ -180,8 +180,8 @@ model ChannelInvite {
   status    ChannelInviteStatus @default(PENDING)
   createdAt DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
   channel   Channel             @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  invitee   User                @relation("ReceivedChannelInvites", fields: [inviteeId], references: [id])
-  inviter   User                @relation("SentChannelInvites", fields: [inviterId], references: [id])
+  invitee   User                @relation("ReceivedChannelInvites", fields: [inviteeId], references: [id], onDelete: Cascade)
+  inviter   User                @relation("SentChannelInvites", fields: [inviterId], references: [id], onDelete: Cascade)
 
   @@unique([channelId, inviteeId])
   @@map("channel_invites")
