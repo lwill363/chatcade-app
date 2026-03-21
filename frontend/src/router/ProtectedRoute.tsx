@@ -15,7 +15,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   // Without this, a page reload with a valid refresh token would flash /login.
   if (isBootstrapping) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#2a2a2a]">
+      <div className="flex flex-1 items-center justify-center bg-[#1A1D2E]">
         <Spinner size="lg" />
       </div>
     );

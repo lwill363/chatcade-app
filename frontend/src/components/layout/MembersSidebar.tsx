@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useListChannelMembersQuery, useSendInviteMutation, useKickChannelMemberMutation } from "@/features/channels/channelsApi";
 import { useGetPresenceQuery } from "@/features/users/usersApi";
 import { useListFriendsQuery } from "@/features/friends/friendsApi";
-import { useAppSelector } from "@/app/hooks";
+import { useAppSelector, useAppDispatch } from "@/app/hooks";
+import { toggleMembersSidebar } from "@/features/ui/uiSlice";
 import { Avatar } from "@/components/ui/Avatar";
 import { Spinner } from "@/components/ui/Spinner";
 import { cn } from "@/lib/utils";
@@ -13,6 +14,7 @@ interface MembersSidebarProps {
 }
 
 export function MembersSidebar({ channelId, channelOwnerId }: MembersSidebarProps) {
+  const dispatch = useAppDispatch();
   const currentUser = useAppSelector((s) => s.auth.user);
   const { data: members, isLoading } = useListChannelMembersQuery(channelId);
   const memberIds = members?.map((m) => m.user.id) ?? [];
@@ -52,8 +54,17 @@ export function MembersSidebar({ channelId, channelOwnerId }: MembersSidebarProp
   };
 
   return (
-    <div className="w-52 bg-sidebar border-l border-white/5 flex flex-col shrink-0">
-      <div className="h-16 px-4 flex items-center border-b border-white/5 shrink-0">
+    <div className="fixed inset-0 z-40 flex flex-col bg-sidebar md:relative md:inset-auto md:z-auto md:w-52 md:border-l md:border-white/5 md:shrink-0">
+      <div className="h-16 px-4 flex items-center border-b border-white/5 shrink-0 gap-2">
+        <button
+          onClick={() => dispatch(toggleMembersSidebar())}
+          className="md:hidden p-1 text-dim hover:text-foreground cursor-pointer rounded-lg hover:bg-white/5 transition-colors shrink-0"
+          aria-label="Close"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
+          </svg>
+        </button>
         <span className="text-[11px] font-extrabold uppercase tracking-widest text-dim flex-1">
           Members — {members?.length ?? 0}
         </span>

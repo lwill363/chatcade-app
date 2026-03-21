@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useCallback, useMemo } from "react";
 import { useListMessagesQuery } from "@/features/messages/messagesApi";
 import { MessageItem } from "./MessageItem";
 import { Spinner } from "@/components/ui/Spinner";
@@ -14,17 +14,27 @@ export function MessageList({ channelId, channelOwnerId }: MessageListProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const isAtBottomRef = useRef(true);
   const hasScrolledInitially = useRef(false);
+  // Saved before older messages are prepended; used to restore scroll position after DOM update
+  const scrollAnchorRef = useRef<number | null>(null);
 
   const [beforeCursor, setBeforeCursor] = useState<string | undefined>();
   const [olderMessages, setOlderMessages] = useState<Message[]>([]);
   const [hasMoreOlder, setHasMoreOlder] = useState(true);
+
+  // Reset all state when channel changes
+  useEffect(() => {
+    setOlderMessages([]);
+    setBeforeCursor(undefined);
+    setHasMoreOlder(true);
+    hasScrolledInitially.current = false;
+  }, [channelId]);
 
   // Latest 50 messages — updated in real-time via WebSocket events
   const { data: latestMessages, isFetching: isFetchingLatest } = useListMessagesQuery(
     { channelId, limit: 50 }
   );
 
-  // Fires only when cursor is set (Load more button)
+  // Fires only when cursor is set (triggered by scroll-to-top)
   const { data: olderBatch, isFetching: isFetchingOlder } = useListMessagesQuery(
     { channelId, limit: 50, before: beforeCursor },
     { skip: !beforeCursor }
@@ -40,6 +50,15 @@ export function MessageList({ channelId, channelOwnerId }: MessageListProps) {
     });
     setHasMoreOlder(olderBatch.length === 50);
   }, [olderBatch, beforeCursor]);
+
+  // After older messages are prepended into the DOM, restore scroll position so the
+  // viewport doesn't jump. useLayoutEffect fires before the browser paints.
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (!el || scrollAnchorRef.current === null) return;
+    el.scrollTop += el.scrollHeight - scrollAnchorRef.current;
+    scrollAnchorRef.current = null;
+  }, [olderMessages]);
 
   // Merge: older (accumulated) + latest (from server), deduped
   const allMessages = useMemo(() => {
@@ -61,42 +80,49 @@ export function MessageList({ channelId, channelOwnerId }: MessageListProps) {
     }
   }, [latestMessages]);
 
+  // True if there are potentially more older messages to fetch
+  const canLoadOlder = olderMessages.length === 0
+    ? latestMessages?.length === 50
+    : hasMoreOlder;
+
+  const loadOlder = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    scrollAnchorRef.current = el.scrollHeight;
+    const oldest = olderMessages[0] ?? latestMessages?.[0];
+    if (oldest) setBeforeCursor(oldest.id);
+  }, [olderMessages, latestMessages]);
+
   const handleScroll = useCallback(() => {
     const el = containerRef.current;
     if (!el) return;
+
     isAtBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
-  }, []);
 
-  const handleLoadMore = () => {
-    const oldest = olderMessages[0] ?? latestMessages?.[0];
-    if (oldest) setBeforeCursor(oldest.id);
-  };
-
-  // Show "Load more" if we haven't loaded any older messages yet and latest is a full page,
-  // or if there are more older pages to load
-  const showLoadMore =
-    olderMessages.length === 0 ? latestMessages?.length === 50 : hasMoreOlder;
+    // Auto-fetch when scrolled within 150px of the top
+    if (el.scrollTop < 150 && canLoadOlder && !isFetchingOlder) {
+      loadOlder();
+    }
+  }, [canLoadOlder, isFetchingOlder, loadOlder]);
 
   const isFirstInGroup = (index: number) => {
     if (index === 0) return true;
     const curr = allMessages[index];
     const prev = allMessages[index - 1];
-    if (curr.author.id !== prev.author.id) return true;
+    if (curr.author?.id !== prev.author?.id) return true;
     return new Date(curr.createdAt).getTime() - new Date(prev.createdAt).getTime() > 5 * 60 * 1000;
   };
 
   return (
     <div ref={containerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto flex flex-col py-4">
-      {showLoadMore && (
-        <div className="flex justify-center pb-4">
-          <button
-            onClick={handleLoadMore}
-            disabled={isFetchingOlder}
-            className="text-[#00C9A7] hover:text-[#33D4B8] text-sm disabled:opacity-50 cursor-pointer"
-          >
-            {isFetchingOlder ? <Spinner size="sm" /> : "Load earlier messages"}
-          </button>
+      {isFetchingOlder && (
+        <div className="flex justify-center py-3">
+          <Spinner size="sm" />
         </div>
+      )}
+
+      {!canLoadOlder && allMessages.length > 0 && !isFetchingOlder && (
+        <p className="text-center text-[#6b6b6b] text-xs py-3">Beginning of conversation</p>
       )}
 
       {allMessages.length === 0 && !isFetchingLatest && (

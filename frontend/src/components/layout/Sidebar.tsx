@@ -171,7 +171,7 @@ export function Sidebar() {
 
   return (
     <>
-      <nav className="w-64 bg-sidebar flex flex-col shrink-0 border-r border-white/5">
+      <nav className="w-full md:w-64 bg-sidebar flex flex-col shrink-0 border-r border-white/5">
 
         {/* Find or start a conversation */}
         <div className="px-3 pt-4 pb-2 shrink-0">

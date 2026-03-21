@@ -2,6 +2,7 @@ import { type ReactNode, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router";
 import { useAppSelector } from "@/app/hooks";
 import { getStoredRefreshToken } from "@/services/api";
+import { Spinner } from "@/components/ui/Spinner";
 
 export function PublicRoute({ children }: { children: ReactNode }) {
   const accessToken = useAppSelector((s) => s.auth.accessToken);
@@ -20,7 +21,11 @@ export function PublicRoute({ children }: { children: ReactNode }) {
     return () => window.removeEventListener("pageshow", handlePageShow);
   }, [navigate]);
 
-  if (isBootstrapping) return null;
+  if (isBootstrapping) return (
+    <div className="flex flex-1 items-center justify-center bg-[#1A1D2E]">
+      <Spinner size="lg" />
+    </div>
+  );
   if (accessToken) return <Navigate to="/" replace />;
 
   return <>{children}</>;

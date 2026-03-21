@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useAppSelector, useAppDispatch } from "@/app/hooks";
-import { toggleMembersSidebar, closeGamePanel } from "@/features/ui/uiSlice";
+import { toggleMembersSidebar, closeGamePanel, clearChannel } from "@/features/ui/uiSlice";
 import { useMarkChannelReadMutation } from "@/features/channels/channelsApi";
 import { useGetPresenceQuery } from "@/features/users/usersApi";
 import { Avatar } from "@/components/ui/Avatar";
@@ -51,6 +51,15 @@ export function ChannelView({ channel }: ChannelViewProps) {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="h-16 px-5 flex items-center gap-3 border-b border-white/5 shrink-0 bg-bg/90 backdrop-blur-sm">
+        <button
+          onClick={() => dispatch(clearChannel())}
+          className="md:hidden p-2 -ml-2 text-dim hover:text-foreground cursor-pointer rounded-lg hover:bg-white/5 transition-colors shrink-0"
+          aria-label="Back"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z" />
+          </svg>
+        </button>
         {channel.type === "DM" && partnerUsername && (
           <div className="relative shrink-0">
             <Avatar username={partnerUsername} size="md" />
