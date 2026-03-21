@@ -1,13 +1,19 @@
+import * as z from "zod";
 import { GameDifficulty } from "generated/prisma/client";
 import { ConflictError, ForbiddenError } from "@common/errors";
 
+export const MoveSchema = z.object({
+  cellIndex: z.number().int().min(0).max(8),
+});
+export type Move = z.infer<typeof MoveSchema>;
+
+export const StateSchema = z.object({
+  board: z.array(z.string().nullable()),
+});
+export type TicTacToeState = z.infer<typeof StateSchema>;
+export type Board = TicTacToeState["board"];
+
 export const MAX_PLAYERS = 2;
-
-export type Board = (string | null)[];
-
-export interface TicTacToeState {
-  board: Board;
-}
 
 export interface MoveResult {
   state: TicTacToeState;
@@ -107,10 +113,9 @@ export function applyMove(
   vsBot: boolean,
   difficulty: GameDifficulty
 ): MoveResult {
-  const input = move as { cellIndex?: unknown };
-  if (typeof input.cellIndex !== "number" || input.cellIndex < 0 || input.cellIndex > 8) {
-    throw new ForbiddenError("Invalid move: cellIndex must be 0–8");
-  }
+  const parsed = MoveSchema.safeParse(move);
+  if (!parsed.success) throw new ForbiddenError("Invalid move: cellIndex must be 0–8");
+  const { cellIndex } = parsed.data;
 
   const player = players.find((p) => p.user.id === userId);
   if (!player) throw new ForbiddenError("You are not a player in this game");
@@ -119,8 +124,8 @@ export function applyMove(
   const mark = MARK_BY_POSITION[player.position] ?? "X";
   const board = state.board.slice();
 
-  if (board[input.cellIndex] !== null) throw new ConflictError("That cell is already taken");
-  board[input.cellIndex] = mark;
+  if (board[cellIndex] !== null) throw new ConflictError("That cell is already taken");
+  board[cellIndex] = mark;
 
   const winner = checkWinner(board);
   const draw = !winner && isDraw(board);

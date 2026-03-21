@@ -1,7 +1,7 @@
 import { PrismaClient, GameDifficulty, GameType } from "generated/prisma/client";
 import * as GamesRepository from "@features/games/games-repository";
 import * as TicTacToe from "@features/games/engines/tictactoe";
-import { ConflictError, ForbiddenError, NotFoundError } from "@common/errors";
+import { APIError, ConflictError, ForbiddenError, NotFoundError } from "@common/errors";
 import { CreateGameDTO, CreateSoloGameDTO } from "@features/games/games-types";
 import { broadcastToChannel } from "@common/broadcast/broadcast-service";
 import { gamesConfig } from "@features/games/games-config";
@@ -22,9 +22,14 @@ function getInitialState(type: GameType): object {
 
 function applyMove(game: NonNullable<Game>, userId: string, move: unknown) {
   switch (game.type) {
-    case "TIC_TAC_TOE":
+    case "TIC_TAC_TOE": {
+      const state = TicTacToe.StateSchema.safeParse(game.state);
+      if (!state.success) {
+        console.error(`[games] corrupted state for game ${game.id}:`, state.error);
+        throw new ConflictError("Game state is corrupted");
+      }
       return TicTacToe.applyMove(
-        game.state as TicTacToe.TicTacToeState,
+        state.data,
         game.currentTurn,
         game.players,
         userId,
@@ -32,8 +37,10 @@ function applyMove(game: NonNullable<Game>, userId: string, move: unknown) {
         game.vsBot,
         game.difficulty
       );
+    }
     default:
-      throw new ForbiddenError(`Unsupported game type: ${game.type}`);
+      console.error(`[games] unsupported game type: ${(game as { type: string }).type}`);
+      throw new APIError({ name: "INTERNAL_SERVER_ERROR", message: "Unsupported game type", code: 500 });
   }
 }
 

@@ -24,7 +24,7 @@ export function TicTacToeGame({ channelId }: TicTacToeGameProps) {
 
   const [createGame, { isLoading: isCreating }] = useCreateGameMutation();
   const [joinGame, { isLoading: isJoining }] = useJoinGameMutation();
-  const [makeMove, { isLoading: isMoving }] = useMakeMoveMutation();
+  const [makeMove, { isLoading: isMoving, isError: isMoveError }] = useMakeMoveMutation();
   const [forfeitGame, { isLoading: isForfeiting }] = useForfeitGameMutation();
 
   const gameRef = useRef(game);
@@ -149,6 +149,10 @@ export function TicTacToeGame({ channelId }: TicTacToeGameProps) {
       <p className={`text-xs font-medium ${isMyTurn ? "text-primary" : "text-dim"}`}>
         {turnLabel}
       </p>
+
+      {isMoveError && (
+        <p className="text-red-400 text-xs text-center">Failed to make move. Please try again.</p>
+      )}
 
       <TicTacToeBoard
         board={board}

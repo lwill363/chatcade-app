@@ -25,6 +25,6 @@ export type CreateSoloGameDTO = z.infer<typeof CreateSoloGameSchema>;
 
 // Generic move payload — each game engine validates its own move structure
 export const MakeMoveSchema = z.object({
-  move: z.record(z.unknown()),
+  move: z.record(z.string(), z.unknown()),
 });
 export type MakeMoveDTO = z.infer<typeof MakeMoveSchema>;
