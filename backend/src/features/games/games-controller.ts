@@ -70,6 +70,14 @@ export async function forfeitGame(
   return reply.send(result);
 }
 
+export async function getActiveChannelGames(request: FastifyRequest, reply: FastifyReply) {
+  const result = await GamesService.getActiveChannelGames(
+    request.user!.principalId,
+    request.server.prisma
+  );
+  return reply.send(result);
+}
+
 export async function getActiveSoloGame(request: FastifyRequest, reply: FastifyReply) {
   const result = await GamesService.getActiveSoloGame(
     request.user!.principalId,

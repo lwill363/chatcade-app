@@ -5,6 +5,12 @@ export type Difficulty = "EASY" | "MEDIUM" | "HARD";
 
 export const gamesApi = api.injectEndpoints({
   endpoints: (builder) => ({
+    // ── Active channel games (all channels the user is in) ────────────────────
+    getActiveChannelGames: builder.query<Game[], void>({
+      query: () => "/api/games/channel",
+      providesTags: [{ type: "Game" as const, id: "ACTIVE_LIST" }],
+    }),
+
     // ── Solo game ─────────────────────────────────────────────────────────────
     getActiveSoloGame: builder.query<Game | null, void>({
       query: () => "/api/games/solo",
@@ -66,6 +72,7 @@ export const gamesApi = api.injectEndpoints({
 });
 
 export const {
+  useGetActiveChannelGamesQuery,
   useGetActiveSoloGameQuery,
   useCreateSoloGameMutation,
   useGetActiveGameQuery,

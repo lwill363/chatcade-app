@@ -12,8 +12,9 @@ import { authenticate } from "@common/middleware/authenticate";
 export async function gamesRoutes(app: FastifyInstance) {
   app.addHook("preHandler", authenticate);
 
-  // Solo game — must be before /games/channel/:channelId to avoid param capture
+  // Static routes must come before parametric ones
   app.get("/games/solo", GamesController.getActiveSoloGame);
+  app.get("/games/channel", GamesController.getActiveChannelGames);
 
   app.post(
     "/games/solo",

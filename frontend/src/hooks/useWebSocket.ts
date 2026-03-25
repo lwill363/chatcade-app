@@ -109,7 +109,10 @@ export function useWebSocket() {
           break;
         }
         case "game.updated": {
-          dispatch(api.util.invalidateTags([{ type: "Game", id: `channel-${event.channelId}` }]));
+          dispatch(api.util.invalidateTags([
+            { type: "Game", id: `channel-${event.channelId}` },
+            { type: "Game", id: "ACTIVE_LIST" },
+          ]));
           break;
         }
         case "friend_request.created": {

@@ -45,6 +45,18 @@ export function findRecentFinishedGame(prisma: PrismaClient, channelId: string, 
   });
 }
 
+export function findActiveChannelGames(prisma: PrismaClient, userId: string) {
+  return prisma.game.findMany({
+    where: {
+      channelId: { not: null },
+      status: { in: ["WAITING", "ACTIVE"] },
+      channel: { members: { some: { userId } } },
+    },
+    select: GAME_SELECT,
+    orderBy: { updatedAt: "desc" },
+  });
+}
+
 export function findActiveSoloGame(prisma: PrismaClient, userId: string) {
   return prisma.game.findFirst({
     where: {

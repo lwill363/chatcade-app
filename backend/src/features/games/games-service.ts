@@ -245,6 +245,10 @@ export async function forfeitGame(gameId: string, userId: string, prisma: Prisma
 
 // ── Solo game functions ────────────────────────────────────────────────────────
 
+export async function getActiveChannelGames(userId: string, prisma: PrismaClient) {
+  return GamesRepository.findActiveChannelGames(prisma, userId);
+}
+
 export async function getActiveSoloGame(userId: string, prisma: PrismaClient) {
   return GamesRepository.findActiveSoloGame(prisma, userId);
 }
