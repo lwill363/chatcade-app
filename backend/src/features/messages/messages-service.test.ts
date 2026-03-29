@@ -1,177 +1,149 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import * as MessagesService from "./messages-service";
 import * as MessagesRepository from "./messages-repository";
+import * as MembershipRepository from "@common/membership/membership-repository";
 import { ForbiddenError, NotFoundError } from "@common/errors";
+import { IDS, mockPrisma, makeMessage, makeMembership } from "@test/factories";
 
 vi.mock("./messages-repository");
+vi.mock("@common/membership/membership-repository");
+vi.mock("@features/messages/messages-config", () => ({
+  messagesConfig: { WS_CALLBACK_URL: "http://test-callback" },
+}));
+vi.mock("@common/broadcast/broadcast-service", () => ({
+  broadcastToUsers: vi.fn().mockResolvedValue(undefined),
+  broadcastToChannel: vi.fn().mockResolvedValue(undefined),
+}));
 
-const mockPrisma = {} as any;
+const CHANNEL_ID = IDS.CHANNEL;
+const USER_ID = IDS.USER;
+const PARTNER_ID = IDS.PARTNER;
+const MESSAGE_ID = IDS.MESSAGE;
 
-const SPACE_ID = "space-1";
-const USER_ID = "user-1";
-const MSG_ID = "msg-1";
-
-const mockMessage = {
-  id: MSG_ID,
-  content: "Hello",
-  spaceId: SPACE_ID,
-  authorId: USER_ID,
-  editedAt: null,
-  createdAt: new Date(),
-  updatedAt: new Date(),
-  author: { id: USER_ID, username: "alice" },
-};
+const mockMessage = makeMessage();
+const mockMembership = makeMembership();
 
 beforeEach(() => {
   vi.resetAllMocks();
 });
 
 describe("sendMessage", () => {
-  it("sends a message when user is a space member", async () => {
-    vi.mocked(MessagesRepository.findSpaceMembership).mockResolvedValue({ spaceId: SPACE_ID });
-    vi.mocked(MessagesRepository.create).mockResolvedValue(mockMessage);
+  it("throws ForbiddenError when user is not a channel member", async () => {
+    vi.mocked(MembershipRepository.findMembership).mockResolvedValue(null);
 
-    const result = await MessagesService.sendMessage(SPACE_ID, USER_ID, "Hello", mockPrisma);
+    await expect(
+      MessagesService.sendMessage(CHANNEL_ID, USER_ID, "Hello", mockPrisma)
+    ).rejects.toThrow(ForbiddenError);
+  });
 
-    expect(MessagesRepository.create).toHaveBeenCalledWith(mockPrisma, {
+  it("creates a message for a channel member", async () => {
+    vi.mocked(MembershipRepository.findMembership).mockResolvedValue(mockMembership as any);
+    vi.mocked(MessagesRepository.createMessage).mockResolvedValue(mockMessage as any);
+
+    const result = await MessagesService.sendMessage(CHANNEL_ID, USER_ID, "Hello", mockPrisma);
+
+    expect(MessagesRepository.createMessage).toHaveBeenCalledWith(mockPrisma, {
       content: "Hello",
-      spaceId: SPACE_ID,
+      channelId: CHANNEL_ID,
       authorId: USER_ID,
     });
     expect(result).toEqual(mockMessage);
   });
-
-  it("throws ForbiddenError when user is not a member", async () => {
-    vi.mocked(MessagesRepository.findSpaceMembership).mockResolvedValue(null);
-
-    await expect(
-      MessagesService.sendMessage(SPACE_ID, USER_ID, "Hello", mockPrisma)
-    ).rejects.toThrow(ForbiddenError);
-  });
 });
 
 describe("listMessages", () => {
-  it("lists messages for a member", async () => {
-    vi.mocked(MessagesRepository.findSpaceMembership).mockResolvedValue({ spaceId: SPACE_ID });
-    vi.mocked(MessagesRepository.findMany).mockResolvedValue([mockMessage]);
-
-    const result = await MessagesService.listMessages(SPACE_ID, USER_ID, { limit: 50 }, mockPrisma);
-
-    expect(MessagesRepository.findMany).toHaveBeenCalledWith(mockPrisma, SPACE_ID, { limit: 50 });
-    expect(result).toEqual([mockMessage]);
-  });
-
-  it("throws ForbiddenError when user is not a member", async () => {
-    vi.mocked(MessagesRepository.findSpaceMembership).mockResolvedValue(null);
+  it("throws ForbiddenError when user is not a channel member", async () => {
+    vi.mocked(MembershipRepository.findMembership).mockResolvedValue(null);
 
     await expect(
-      MessagesService.listMessages(SPACE_ID, USER_ID, { limit: 50 }, mockPrisma)
+      MessagesService.listMessages(CHANNEL_ID, USER_ID, { limit: 50 }, mockPrisma)
     ).rejects.toThrow(ForbiddenError);
+  });
+
+  it("returns messages for a channel member", async () => {
+    vi.mocked(MembershipRepository.findMembership).mockResolvedValue(mockMembership as any);
+    vi.mocked(MessagesRepository.findMessages).mockResolvedValue([mockMessage] as any);
+
+    const result = await MessagesService.listMessages(CHANNEL_ID, USER_ID, { limit: 50 }, mockPrisma);
+
+    expect(MessagesRepository.findMessages).toHaveBeenCalledWith(mockPrisma, CHANNEL_ID, { limit: 50 });
+    expect(result).toEqual([mockMessage]);
   });
 });
 
 describe("editMessage", () => {
-  it("edits a message authored by the user", async () => {
-    vi.mocked(MessagesRepository.findById).mockResolvedValue({
-      id: MSG_ID,
-      authorId: USER_ID,
-      spaceId: SPACE_ID,
-    });
-    vi.mocked(MessagesRepository.update).mockResolvedValue({ ...mockMessage, content: "Edited" });
-
-    const result = await MessagesService.editMessage(MSG_ID, USER_ID, "Edited", mockPrisma);
-
-    expect(MessagesRepository.update).toHaveBeenCalledWith(mockPrisma, MSG_ID, "Edited");
-    expect(result.content).toBe("Edited");
-  });
-
   it("throws NotFoundError when message does not exist", async () => {
-    vi.mocked(MessagesRepository.findById).mockResolvedValue(null);
+    vi.mocked(MessagesRepository.findMessageById).mockResolvedValue(null);
 
     await expect(
-      MessagesService.editMessage(MSG_ID, USER_ID, "Edited", mockPrisma)
+      MessagesService.editMessage(MESSAGE_ID, USER_ID, "Updated", mockPrisma)
     ).rejects.toThrow(NotFoundError);
   });
 
-  it("throws ForbiddenError when user is not the author", async () => {
-    vi.mocked(MessagesRepository.findById).mockResolvedValue({
-      id: MSG_ID,
-      authorId: "other-user",
-      spaceId: SPACE_ID,
-    });
+  it("throws ForbiddenError when editing another user's message", async () => {
+    vi.mocked(MessagesRepository.findMessageById).mockResolvedValue({
+      ...mockMessage,
+      authorId: PARTNER_ID,
+    } as any);
 
     await expect(
-      MessagesService.editMessage(MSG_ID, USER_ID, "Edited", mockPrisma)
+      MessagesService.editMessage(MESSAGE_ID, USER_ID, "Updated", mockPrisma)
     ).rejects.toThrow(ForbiddenError);
+  });
+
+  it("edits own message", async () => {
+    const updated = { ...mockMessage, content: "Updated" };
+    vi.mocked(MessagesRepository.findMessageById).mockResolvedValue(mockMessage as any);
+    vi.mocked(MessagesRepository.updateMessage).mockResolvedValue(updated as any);
+
+    const result = await MessagesService.editMessage(MESSAGE_ID, USER_ID, "Updated", mockPrisma);
+
+    expect(MessagesRepository.updateMessage).toHaveBeenCalledWith(mockPrisma, MESSAGE_ID, "Updated");
+    expect(result).toEqual(updated);
   });
 });
 
 describe("deleteMessage", () => {
-  it("allows the author to delete their message", async () => {
-    vi.mocked(MessagesRepository.findById).mockResolvedValue({
-      id: MSG_ID,
-      authorId: USER_ID,
-      spaceId: SPACE_ID,
-    });
-    vi.mocked(MessagesRepository.deleteMessage).mockResolvedValue(undefined as any);
-
-    await MessagesService.deleteMessage(MSG_ID, USER_ID, mockPrisma);
-
-    expect(MessagesRepository.deleteMessage).toHaveBeenCalledWith(mockPrisma, MSG_ID);
-  });
-
-  it("allows the space owner to delete any message", async () => {
-    const OWNER_ID = "owner-1";
-    vi.mocked(MessagesRepository.findById).mockResolvedValue({
-      id: MSG_ID,
-      authorId: "another-user",
-      spaceId: SPACE_ID,
-    });
-    vi.mocked(MessagesRepository.findSpaceOwner).mockResolvedValue({ ownerId: OWNER_ID });
-    vi.mocked(MessagesRepository.deleteMessage).mockResolvedValue(undefined as any);
-
-    await MessagesService.deleteMessage(MSG_ID, OWNER_ID, mockPrisma);
-
-    expect(MessagesRepository.deleteMessage).toHaveBeenCalledWith(mockPrisma, MSG_ID);
-  });
-
-  it("throws ForbiddenError when non-author non-owner tries to delete", async () => {
-    vi.mocked(MessagesRepository.findById).mockResolvedValue({
-      id: MSG_ID,
-      authorId: "another-user",
-      spaceId: SPACE_ID,
-    });
-    vi.mocked(MessagesRepository.findSpaceOwner).mockResolvedValue({ ownerId: "owner-1" });
-
-    await expect(
-      MessagesService.deleteMessage(MSG_ID, USER_ID, mockPrisma)
-    ).rejects.toThrow(ForbiddenError);
-  });
-
   it("throws NotFoundError when message does not exist", async () => {
-    vi.mocked(MessagesRepository.findById).mockResolvedValue(null);
+    vi.mocked(MessagesRepository.findMessageById).mockResolvedValue(null);
 
     await expect(
-      MessagesService.deleteMessage(MSG_ID, USER_ID, mockPrisma)
+      MessagesService.deleteMessage(MESSAGE_ID, USER_ID, mockPrisma)
     ).rejects.toThrow(NotFoundError);
   });
-});
 
-describe("markSpaceRead", () => {
-  it("marks space as read for a member", async () => {
-    vi.mocked(MessagesRepository.findSpaceMembership).mockResolvedValue({ spaceId: SPACE_ID });
-    vi.mocked(MessagesRepository.markSpaceRead).mockResolvedValue(undefined as any);
+  it("allows author to delete their own message", async () => {
+    vi.mocked(MessagesRepository.findMessageById).mockResolvedValue(mockMessage as any);
+    vi.mocked(MessagesRepository.deleteMessage).mockResolvedValue(undefined as any);
 
-    await MessagesService.markSpaceRead(SPACE_ID, USER_ID, mockPrisma);
+    await MessagesService.deleteMessage(MESSAGE_ID, USER_ID, mockPrisma);
 
-    expect(MessagesRepository.markSpaceRead).toHaveBeenCalledWith(mockPrisma, USER_ID, SPACE_ID);
+    expect(MessagesRepository.deleteMessage).toHaveBeenCalledWith(mockPrisma, MESSAGE_ID);
   });
 
-  it("throws ForbiddenError when user is not a member", async () => {
-    vi.mocked(MessagesRepository.findSpaceMembership).mockResolvedValue(null);
+  it("allows room owner to delete another user's message", async () => {
+    const OWNER_ID = "owner-1";
+    vi.mocked(MessagesRepository.findMessageById).mockResolvedValue({
+      ...mockMessage,
+      authorId: PARTNER_ID,
+    } as any);
+    vi.mocked(MessagesRepository.findChannelOwner).mockResolvedValue({ ownerId: OWNER_ID } as any);
+    vi.mocked(MessagesRepository.deleteMessage).mockResolvedValue(undefined as any);
+
+    await MessagesService.deleteMessage(MESSAGE_ID, OWNER_ID, mockPrisma);
+
+    expect(MessagesRepository.deleteMessage).toHaveBeenCalledWith(mockPrisma, MESSAGE_ID);
+  });
+
+  it("throws ForbiddenError when non-author and non-room-owner tries to delete", async () => {
+    vi.mocked(MessagesRepository.findMessageById).mockResolvedValue({
+      ...mockMessage,
+      authorId: PARTNER_ID,
+    } as any);
+    vi.mocked(MessagesRepository.findChannelOwner).mockResolvedValue({ ownerId: "someone-else" } as any);
 
     await expect(
-      MessagesService.markSpaceRead(SPACE_ID, USER_ID, mockPrisma)
+      MessagesService.deleteMessage(MESSAGE_ID, USER_ID, mockPrisma)
     ).rejects.toThrow(ForbiddenError);
   });
 });
