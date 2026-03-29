@@ -1,6 +1,6 @@
 # Chatcade — Frontend
 
-Discord-like chat UI built with React 19, Redux Toolkit, and Tailwind CSS v4.
+React SPA for Chatcade — real-time chat, friends, and a game hub.
 
 ## Tech Stack
 
@@ -10,7 +10,8 @@ Discord-like chat UI built with React 19, Redux Toolkit, and Tailwind CSS v4.
 - **Routing:** React Router 7
 - **Forms:** React Hook Form + Zod validation
 - **Styling:** Tailwind CSS v4 (CSS-based config via `@tailwindcss/vite`)
-- **Utilities:** date-fns, clsx, tailwind-merge
+- **Real-time:** Native WebSocket with exponential backoff reconnect, ping/pong keepalive
+- **Testing:** Vitest (unit + component), Playwright (E2E)
 - **Package manager:** Yarn 4
 
 ## Project Structure
@@ -19,105 +20,127 @@ Discord-like chat UI built with React 19, Redux Toolkit, and Tailwind CSS v4.
 frontend/
 ├── index.html
 ├── vite.config.ts          # Vite proxy + path aliases
+├── playwright.config.ts    # E2E test config
 └── src/
     ├── main.tsx            # App entry — session restore on load
     ├── App.tsx
     ├── index.css           # Tailwind import + base styles
-    ├── lib/utils.ts        # cn() helper (clsx + twMerge)
-    ├── types/index.ts      # Shared TypeScript interfaces
     ├── app/
     │   ├── store.ts        # Redux store
     │   └── hooks.ts        # Typed useAppDispatch / useAppSelector
     ├── services/
-    │   └── api.ts          # RTK Query base — auto token refresh on 401
+    │   ├── api.ts          # RTK Query base — auto token refresh on 401
+    │   └── websocket.ts    # WebSocket client — reconnect, ping/pong, event dispatch
     ├── features/
-    │   ├── auth/           # authSlice + authApi (RTK Query endpoints)
-    │   ├── servers/        # serversApi
-    │   ├── channels/       # channelsApi
+    │   ├── auth/           # authSlice + authApi
+    │   ├── channels/       # channelsApi (rooms + DMs)
     │   ├── messages/       # messagesApi
-    │   ├── users/          # usersApi
-    │   └── ui/             # uiSlice (selected server/channel)
+    │   ├── friends/        # friendsApi
+    │   ├── games/          # game state + engine (TicTacToe)
+    │   └── ui/             # uiSlice (selectedChannel, showMembersSidebar)
     ├── components/
     │   ├── ui/             # Button, Input, Modal, Spinner, Avatar
-    │   ├── layout/         # AppLayout, ServerSidebar, ChannelSidebar, MembersSidebar
-    │   ├── chat/           # ChatArea, MessageList, MessageItem, MessageInput
-    │   └── modals/         # CreateServerModal, CreateChannelModal, UserSettingsModal
+    │   ├── layout/         # Sidebar, MembersSidebar, AppLayout
+    │   ├── chat/           # ChannelView, MessageList, MessageItem, MessageInput
+    │   ├── games/          # TicTacToe board + game hub
+    │   └── modals/         # CreateRoomModal, NewMessageModal, UserSettingsModal
     ├── pages/
     │   ├── LoginPage.tsx
     │   └── RegisterPage.tsx
     └── router/
-        ├── index.tsx       # Route definitions
+        ├── index.tsx
         └── ProtectedRoute.tsx
 ```
 
 ## Setup
 
-**Prerequisites:** Node.js 22, Yarn 4 (`corepack enable`)
+**Prerequisites:** Node.js 24, Yarn 4 (`corepack enable`)
 
 ```sh
 yarn install
-cp .env.example .env
-yarn dev
+yarn dev    # http://localhost:5173
 ```
 
-The dev server starts at **http://localhost:5173**.
+The backend services must be running first — see the [backend README](../backend/README.md).
 
-### Environment Variables
+## Environment Variables
 
 | Variable | Description |
 |---|---|
-| `VITE_API_BASE_URL` | API base URL for production builds. Leave empty in local dev — Vite proxy handles routing. |
+| `VITE_WS_URL` | WebSocket API URL (`wss://...`). Required for production builds. Not needed in local dev. |
+
+In production, `VITE_WS_URL` is injected automatically by the CI/CD pipeline from the Terraform output.
 
 ## Local Development
 
-In local dev, the Vite dev server proxies API requests to the backend services running on separate ports:
+The Vite dev server proxies API requests to the backend services:
 
 | Prefix | Backend service | Port |
 |---|---|---|
-| `/auth` | auth | 3001 |
-| `/servers` | servers | 3002 |
-| `/channels` | channels | 3003 |
-| `/messages` | messages | 3004 |
-| `/users` | users | 3005 |
+| `/api/auth` | auth | 3001 |
+| `/api/users` | users | 3002 |
+| `/api/channels` | channels | 3003 |
+| `/api/channels/:id/messages` | messages | 3004 |
+| `/api/friends` | friends | 3005 |
+| `/api/games` | games | 3006 |
 
-Start each backend service before running the frontend — see the [backend README](../backend/README.md).
-
-## Auth Flow
-
-1. On login/register, the `accessToken` is stored in Redux (in-memory) and the `refreshToken` is persisted to `localStorage`.
-2. On page load, `main.tsx` checks `localStorage` for a refresh token and automatically exchanges it for a new access token, restoring the session.
-3. RTK Query's base query adds `Authorization: Bearer <accessToken>` to every request.
-4. On a `401` response, the base query transparently refreshes the token and retries the original request. If refresh fails, the user is logged out.
+WebSocket connections in local dev point directly to the backend (not proxied). The WebSocket handler only runs as a Lambda in AWS.
 
 ## UI Layout
 
 ```
-┌──────┬────────────┬──────────────────────────┬──────────┐
-│Server│  Channels  │       Message History     │ Members  │
-│ List │  (72px +   │                           │  List    │
-│(72px)│   240px)   │                           │ (240px)  │
-│      │            ├──────────────────────────┤          │
-│      │  User bar  │      Message Input        │          │
-└──────┴────────────┴──────────────────────────┴──────────┘
+┌─────────────────────────────────────────────────┐
+│ Sidebar (240px)  │  Channel View                 │
+│                  │                               │
+│  Direct Messages │  Message history              │
+│  Rooms           │  ──────────────────────       │
+│  ──────────────  │  Message input                │
+│  [Games tab]     │                               │
+│                  │               [Members (opt)] │
+│  ──────────────  │                               │
+│  [User / Settings] │                             │
+└─────────────────────────────────────────────────┘
 ```
 
-- **Server sidebar** — icon per server, add server button
-- **Channel sidebar** — channel list, create channel (server owner), user info + settings
-- **Chat area** — infinite scroll upward, inline message edit/delete, member list toggle
-- **Members sidebar** — toggleable, shows all server members
+- **Sidebar** — DMs (with unread counts), Rooms, Games hub tab, user info + settings at the bottom
+- **Channel view** — message history with cursor-based scroll pagination, inline edit/delete, real-time delivery
+- **Members sidebar** — toggleable panel, shows all room members
+- **Games hub** — TicTacToe with solo (vs bot) and multiplayer modes
 
-## Key Design Decisions
+## Auth Flow
 
-- **Single RTK Query API instance** — all feature endpoints are injected into one `createApi` so they share the same tag-based cache.
-- **Message pagination** — cursor-based (`before` UUID). `MessageList` accumulates pages in local state when scrolling up, and auto-scrolls to the bottom on new messages.
-- **Message grouping** — consecutive messages from the same author within 5 minutes are visually grouped (avatar shown only on the first).
-- **Path alias** — `@/` maps to `src/` in both TypeScript and Vite.
+1. On login/register, `accessToken` is stored in Redux (in-memory); `refreshToken` is persisted to `localStorage` under `chatcade_refresh_token`.
+2. On page load, `main.tsx` checks for a stored refresh token and exchanges it for a new access token, restoring the session without a login prompt.
+3. RTK Query's base query attaches `Authorization: Bearer <accessToken>` to every request.
+4. On a `401`, the base query transparently refreshes the token and retries. If refresh fails, the user is logged out.
+
+## Real-time (WebSocket)
+
+The WebSocket client in `services/websocket.ts` connects after login and handles:
+
+- **Presence** — broadcasts user online/offline status; online indicators shown throughout the UI
+- **Messages** — new/edit/delete events trigger RTK Query cache invalidations for instant UI updates
+- **Games** — game state updates pushed to both players in multiplayer sessions
+
+Reconnect uses exponential backoff (1s → 30s cap). Ping/pong keepalive prevents idle disconnects. Multiple tabs share the same underlying connection via a ref-counted connection manager.
+
+## Testing
+
+```sh
+# Unit + component tests
+yarn test          # run once
+yarn test:watch    # watch mode
+
+# E2E tests (requires a running app — local or deployed)
+PLAYWRIGHT_BASE_URL=http://localhost:5173 yarn test:e2e
+yarn test:e2e:ui   # Playwright UI mode for debugging
+```
+
+E2E tests create and clean up their own test users via the registration and account deletion APIs — no pre-existing test credentials needed.
 
 ## Building for Production
 
 ```sh
-yarn build       # outputs to dist/
-yarn preview     # preview the production build locally
+VITE_WS_URL=wss://your-ws-url yarn build   # outputs to dist/
+yarn preview                                # preview the build locally
 ```
-
-Set `VITE_API_BASE_URL` in your deployment environment to your API Gateway URL.

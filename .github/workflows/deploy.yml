@@ -88,7 +88,7 @@ jobs:
             yarn dlx esbuild "$handler" \
               --bundle \
               --platform=node \
-              --target=node22 \
+              --target=node24 \
               --outfile="dist/$name/index.js"
           done
 
@@ -157,6 +157,20 @@ jobs:
               assignPublicIp=ENABLED
             }"
 
+      - name: Warm up Lambdas
+        if: github.ref == 'refs/heads/main'
+        run: |
+          API="${{ steps.tfout.outputs.api_gateway_url }}"
+          # Hit each Lambda with an unauthenticated request to force cold starts
+          # before Playwright tests run. 401s are expected and fine.
+          curl -sf "$API/api/auth/me" || true
+          curl -sf "$API/api/channels" || true
+          curl -sf "$API/api/friends" || true
+          curl -sf "$API/api/games" || true
+          curl -sf -X POST "$API/api/channels/warmup/messages" || true
+          # Give Lambdas time to fully initialize (VPC cold starts can take 10-20s)
+          sleep 15
+
       - name: Install Playwright browsers
         working-directory: frontend
         if: github.ref == 'refs/heads/main'
@@ -170,7 +184,7 @@ jobs:
         run: yarn test:e2e
 
       - name: Upload Playwright report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-report

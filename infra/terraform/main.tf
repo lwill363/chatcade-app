@@ -183,6 +183,7 @@ locals {
     CHANNELS_PORT         = data.aws_ssm_parameter.channels_port.value
     CHANNELS_SERVICE_NAME = data.aws_ssm_parameter.channels_service_name.value
     JWT_SECRET            = data.aws_ssm_parameter.jwt_secret.value
+    WS_CALLBACK_URL       = local.ws_callback_url
   }
 }
 

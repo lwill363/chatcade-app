@@ -26,7 +26,7 @@ interface CreateRoomModalProps {
 
 export function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProps) {
   const dispatch = useAppDispatch();
-  const [createRoom, { isLoading }] = useCreateRoomMutation();
+  const [createRoom, { isLoading, isError }] = useCreateRoomMutation();
   const { data: friends = [] } = useListFriendsQuery();
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [friendSearch, setFriendSearch] = useState("");
@@ -55,25 +55,29 @@ export function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProps) {
   };
 
   const onSubmit = async (data: FormValues) => {
-    const room = await createRoom({
-      ...data,
-      inviteeIds: selectedIds.size > 0 ? [...selectedIds] : undefined,
-    }).unwrap();
-    dispatch(selectChannel({
-      id: room.id,
-      type: "ROOM",
-      name: room.name,
-      description: room.description,
-      ownerId: room.ownerId,
-      lastMessageId: null,
-      unreadCount: 0,
-      latestAt: null,
-      latestMessage: null,
-    }));
-    reset();
-    setSelectedIds(new Set());
-    setFriendSearch("");
-    onClose();
+    try {
+      const room = await createRoom({
+        ...data,
+        inviteeIds: selectedIds.size > 0 ? [...selectedIds] : undefined,
+      }).unwrap();
+      dispatch(selectChannel({
+        id: room.id,
+        type: "ROOM",
+        name: room.name,
+        description: room.description,
+        ownerId: room.ownerId,
+        lastMessageId: null,
+        unreadCount: 0,
+        latestAt: null,
+        latestMessage: null,
+      }));
+      reset();
+      setSelectedIds(new Set());
+      setFriendSearch("");
+      onClose();
+    } catch {
+      // Error is surfaced via RTK Query isError — modal stays open
+    }
   };
 
   const handleClose = () => {
@@ -148,6 +152,10 @@ export function CreateRoomModal({ isOpen, onClose }: CreateRoomModalProps) {
               )}
             </div>
           </div>
+        )}
+
+        {isError && (
+          <p className="text-xs text-red-400">Failed to create room. Please try again.</p>
         )}
 
         <div className="flex justify-end gap-3 mt-2">

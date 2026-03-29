@@ -21,7 +21,7 @@ export async function registerAndLogin(page: Page, user: TestUser) {
   await page.goto("/register");
   await page.getByLabel("Username").fill(user.username);
   await page.getByLabel("Email").fill(user.email);
-  await page.getByLabel("Password").first().fill(user.password);
+  await page.getByLabel("Password", { exact: true }).fill(user.password);
   await page.getByLabel("Confirm Password").fill(user.password);
   await page.getByRole("button", { name: "Register" }).click();
   await page.waitForURL("/");
@@ -36,7 +36,7 @@ export async function login(page: Page, user: TestUser) {
 }
 
 // Uses the stored refresh token to get a fresh access token, then deletes the account.
-// Safe to call in afterAll even if the test failed partway through.
+// Safe to call in afterEach even if the test failed partway through.
 export async function deleteTestAccount(page: Page) {
   try {
     const refreshToken = await page.evaluate(

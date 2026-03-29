@@ -157,7 +157,7 @@ resource "aws_lambda_permission" "ws_default_invoke" {
   source_arn    = "${aws_apigatewayv2_api.ws.execution_arn}/*/*"
 }
 
-# ─── IAM: ws-default and messages can push messages back to WebSocket clients ──
+# ─── IAM: ws-default, messages, and channels can push messages back to WebSocket clients ──
 
 resource "aws_iam_role_policy" "ws_default_manage_connections" {
   name = "manage-websocket-connections"
@@ -176,6 +176,20 @@ resource "aws_iam_role_policy" "ws_default_manage_connections" {
 resource "aws_iam_role_policy" "messages_manage_connections" {
   name = "manage-websocket-connections"
   role = module.messages_lambda.role_name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = "execute-api:ManageConnections"
+      Resource = "${aws_apigatewayv2_api.ws.execution_arn}/*"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "channels_manage_connections" {
+  name = "manage-websocket-connections"
+  role = module.channels_lambda.role_name
 
   policy = jsonencode({
     Version = "2012-10-17"

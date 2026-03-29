@@ -1,16 +1,17 @@
 import { test, expect } from "@playwright/test";
-import { makeTestUser, registerAndLogin, login, deleteTestAccount } from "./helpers";
+import { makeTestUser, registerAndLogin, login, deleteTestAccount, type TestUser } from "./helpers";
 
 test.describe("Authentication", () => {
-  test("user can register and land in the app", async ({ page }) => {
-    const user = makeTestUser();
+  let user: TestUser;
 
-    await registerAndLogin(page, user);
-
-    // Sidebar should be visible
-    await expect(page.getByTitle("Rooms")).toBeVisible();
-
+  test.afterEach(async ({ page }) => {
     await deleteTestAccount(page);
+  });
+
+  test("user can register and land in the app", async ({ page }) => {
+    user = makeTestUser();
+    await registerAndLogin(page, user);
+    await expect(page.getByTitle("Games")).toBeVisible();
   });
 
   test("unauthenticated user is redirected to login", async ({ page }) => {
@@ -19,17 +20,12 @@ test.describe("Authentication", () => {
   });
 
   test("user can log in with existing credentials", async ({ page }) => {
-    const user = makeTestUser();
-
-    // Register first, then logout by navigating to login page
+    user = makeTestUser();
     await registerAndLogin(page, user);
     await page.goto("/login");
     await expect(page).toHaveURL(/\/login/);
-
     await login(page, user);
-    await expect(page.getByTitle("Rooms")).toBeVisible();
-
-    await deleteTestAccount(page);
+    await expect(page.getByTitle("Games")).toBeVisible();
   });
 
   test("login shows error for wrong password", async ({ page }) => {
@@ -37,18 +33,19 @@ test.describe("Authentication", () => {
     await page.getByLabel("Email or Username").fill("nonexistent@test.local");
     await page.getByLabel("Password").fill("wrongpassword");
     await page.getByRole("button", { name: "Log In" }).click();
-
-    await expect(page.locator("text=/invalid|incorrect|not found/i")).toBeVisible();
+    await expect(page.getByText(/invalid|incorrect|not found/i)).toBeVisible();
   });
 
   test("user can log out via settings", async ({ page }) => {
-    const user = makeTestUser();
+    user = makeTestUser();
     await registerAndLogin(page, user);
 
-    // Open settings via the bottom-left avatar area
+    // Delete account before logging out — after logout the refresh token is gone
+    // and afterEach cleanup would silently fail
+    await deleteTestAccount(page);
+
     await page.getByTitle("Settings").click();
     await page.getByRole("button", { name: /log out/i }).click();
-
     await expect(page).toHaveURL(/\/login/);
   });
 });

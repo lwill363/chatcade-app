@@ -190,6 +190,7 @@ export function Sidebar() {
         <div className="px-3 pb-2 shrink-0 flex flex-col gap-0.5">
           <button
             onClick={() => { dispatch(setActiveView("friends")); dispatch(clearChannel()); }}
+            title="Friends"
             className={cn(
               "w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors cursor-pointer text-left",
               activeView === "friends" ? "bg-primary/15 text-primary" : "text-muted hover:bg-hover hover:text-foreground"
@@ -202,6 +203,7 @@ export function Sidebar() {
           </button>
           <button
             onClick={() => { dispatch(setActiveView("games")); dispatch(clearChannel()); }}
+            title="Games"
             className={cn(
               "w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors cursor-pointer text-left",
               activeView === "games" ? "bg-primary/15 text-primary" : "text-muted hover:bg-hover hover:text-foreground"

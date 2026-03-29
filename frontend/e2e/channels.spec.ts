@@ -1,39 +1,56 @@
 import { test, expect } from "@playwright/test";
-import { makeTestUser, registerAndLogin, deleteTestAccount } from "./helpers";
+import {
+  makeTestUser,
+  registerAndLogin,
+  deleteTestAccount,
+  type TestUser,
+} from "./helpers";
 
 test.describe("Channels", () => {
-  test("user can create a room and send a message", async ({ page }) => {
-    const user = makeTestUser();
-    await registerAndLogin(page, user);
+  let user: TestUser;
 
-    // Open create room modal via the "New Room" button in the sidebar
-    await page.getByTitle("New Room").click();
-    await page.getByPlaceholder("My awesome room").fill("E2E Test Room");
-    await page.getByRole("button", { name: /create/i }).click();
-
-    // Room should appear selected in the channel view
-    await expect(page.getByText("E2E Test Room")).toBeVisible();
-
-    // Send a message
-    await page.getByTitle("Send message").locator("..").locator("textarea").fill("Hello from Playwright!");
-    await page.getByTitle("Send message").click();
-
-    // Message should appear in the list
-    await expect(page.getByText("Hello from Playwright!")).toBeVisible();
-
+  test.afterEach(async ({ page }) => {
     await deleteTestAccount(page);
   });
 
-  test("user can open a DM with themselves is blocked", async ({ page }) => {
-    // This tests that the new message modal exists and is functional
-    const user = makeTestUser();
+  test("user can create a room and send a message", async ({ page }) => {
+    user = makeTestUser();
+    await registerAndLogin(page, user);
+
+    await page.getByTitle("New Room").click();
+    await page.getByPlaceholder("My awesome room").fill("E2E Test Room");
+
+    // Wait for the room creation API response before asserting modal closure
+    const createRoomResponse = page.waitForResponse(
+      (r) =>
+        r.url().includes("/api/channels/rooms") &&
+        r.request().method() === "POST",
+      { timeout: 20_000 },
+    );
+    await page.getByPlaceholder("My awesome room").press("Enter");
+    const response = await createRoomResponse;
+    expect(response.status()).toBe(201);
+
+    // Modal should be closed now
+    await expect(page.getByPlaceholder("My awesome room")).not.toBeVisible();
+    await page.getByRole("button", { name: "E2E Test Room" }).click();
+
+    // Send a message
+    await page.getByRole("textbox").fill("Hello from Playwright!");
+    await page.getByTitle("Send message").click();
+
+    // Get message from message list view and not sidebar preview
+    await expect(
+      page.getByText("Hello from Playwright!", { exact: true }),
+    ).toBeVisible();
+  });
+
+  test("new direct message modal opens", async ({ page }) => {
+    user = makeTestUser();
     await registerAndLogin(page, user);
 
     await page.getByTitle("New Direct Message").click();
 
-    // Modal should appear
     await expect(page.getByPlaceholder(/search/i)).toBeVisible();
-
-    await deleteTestAccount(page);
   });
 });
