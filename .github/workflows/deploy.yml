@@ -26,7 +26,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
         with:
-          role-to-assume: arn:aws:iam::REDACTED_ACCOUNT_ID:role/GitHubTerraformRole
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubTerraformRole
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Get AWS Account ID
@@ -109,7 +109,7 @@ jobs:
 
       - name: Terraform Plan
         working-directory: infra/terraform
-        run: terraform plan -var="image_uri=$BASE_IMAGE_URI-${{ github.sha }}" -out=tfplan
+        run: terraform plan -var="image_uri=$BASE_IMAGE_URI-${{ github.sha }}" -var="alarm_email=${{ secrets.ALARM_EMAIL }}" -out=tfplan
 
       - name: Terraform Apply
         working-directory: infra/terraform

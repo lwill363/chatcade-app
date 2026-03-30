@@ -25,5 +25,11 @@ variable "image_uri" {
 variable "alarm_email" {
   description = "Email address to notify when a Lambda error alarm fires. Leave empty to disable notifications."
   type        = string
-  default     = "REDACTED_EMAIL"
+  default     = ""
+}
+
+variable "domain_name" {
+  description = "Custom domain name for the app (e.g. chatcade.net)"
+  type        = string
+  default     = "chatcade.net"
 }

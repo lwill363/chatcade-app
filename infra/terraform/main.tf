@@ -539,10 +539,12 @@ module "cloudfront" {
   s3_bucket_regional_domain_name = module.frontend.bucket_regional_domain_name
   api_gateway_url                = module.http_api.invoke_url
   api_origin_secret              = random_password.origin_secret.result
+  domain_name                    = var.domain_name
+  acm_certificate_arn            = aws_acm_certificate_validation.this.certificate_arn
 
   # Ensure the S3 bucket and its public access block are fully applied
   # before CloudFront tries to attach the bucket policy.
-  depends_on = [module.frontend]
+  depends_on = [module.frontend, aws_acm_certificate_validation.this]
 }
 
 # ─── Database migration ECS task ─────────────────────────────────────────────

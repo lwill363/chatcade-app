@@ -34,3 +34,13 @@ variable "api_path_patterns" {
   description = "Path patterns routed to the API Gateway origin instead of S3"
   default     = ["/api/*"]
 }
+
+variable "domain_name" {
+  type        = string
+  description = "Custom domain name for the CloudFront distribution (e.g. chatcade.net)"
+}
+
+variable "acm_certificate_arn" {
+  type        = string
+  description = "ARN of the ACM certificate for the custom domain (must be in us-east-1)"
+}

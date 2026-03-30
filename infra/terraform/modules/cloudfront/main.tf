@@ -1,16 +1,12 @@
-# ─── Managed Policy Lookups ───────────────────────────────────────────────────
-# AWS managed policies are prefixed with "Managed-" in their Name field.
+# ─── Managed Policy IDs ───────────────────────────────────────────────────────
+# Hardcoded because data source lookups for these cause "inconsistent final plan"
+# errors in the AWS provider. These are AWS-owned constants — same ID in every
+# account and region. Source: https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/using-managed-cache-policies.html
 
-data "aws_cloudfront_cache_policy" "caching_disabled" {
-  name = "Managed-CachingDisabled"
-}
-
-data "aws_cloudfront_cache_policy" "caching_optimized" {
-  name = "Managed-CachingOptimized"
-}
-
-data "aws_cloudfront_origin_request_policy" "all_viewer_except_host_header" {
-  name = "Managed-AllViewerExceptHostHeader"
+locals {
+  cache_policy_caching_disabled              = "4135ea2d-6df8-44a3-9df3-4b5a84be39ad"
+  cache_policy_caching_optimized             = "658327ea-f89d-4fab-a63d-7e88639e58f6"
+  origin_request_policy_all_viewer_except_host_header = "b689b0a8-53d0-40ab-baf2-68738e2966ac"
 }
 
 # ─── Origin Access Control ────────────────────────────────────────────────────
@@ -59,6 +55,7 @@ resource "aws_cloudfront_distribution" "this" {
   enabled             = true
   is_ipv6_enabled     = true
   default_root_object = "index.html"
+  aliases             = [var.domain_name]
 
   # API path behaviors — matched before the default S3 behavior.
   # No caching; Authorization header and query strings are forwarded.
@@ -73,9 +70,9 @@ resource "aws_cloudfront_distribution" "this" {
       compress         = false
 
       # CachingDisabled — no caching for API responses
-      cache_policy_id = data.aws_cloudfront_cache_policy.caching_disabled.id
+      cache_policy_id = local.cache_policy_caching_disabled
       # AllViewerExceptHostHeader — forwards Authorization, Content-Type, etc.
-      origin_request_policy_id = data.aws_cloudfront_origin_request_policy.all_viewer_except_host_header.id
+      origin_request_policy_id = local.origin_request_policy_all_viewer_except_host_header
 
       viewer_protocol_policy = "https-only"
     }
@@ -89,7 +86,7 @@ resource "aws_cloudfront_distribution" "this" {
     compress         = true
 
     # CachingOptimized — long cache for immutable frontend assets
-    cache_policy_id = data.aws_cloudfront_cache_policy.caching_optimized.id
+    cache_policy_id = local.cache_policy_caching_optimized
 
     viewer_protocol_policy = "redirect-to-https"
   }
@@ -117,7 +114,9 @@ resource "aws_cloudfront_distribution" "this" {
   }
 
   viewer_certificate {
-    cloudfront_default_certificate = true
+    acm_certificate_arn      = var.acm_certificate_arn
+    ssl_support_method       = "sni-only"
+    minimum_protocol_version = "TLSv1.2_2021"
   }
 
   tags = {
