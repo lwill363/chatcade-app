@@ -60,7 +60,7 @@ export function AppLayout() {
       </div>
 
       {/* Main content: always visible on desktop, hidden on mobile when sidebar is showing */}
-      <main className={`${hasActiveContent ? "flex" : "hidden"} md:flex flex-1 flex-col min-w-0 bg-bg`}>
+      <main className={`${hasActiveContent ? "flex" : "hidden"} md:flex flex-1 flex-col min-w-0 bg-bg ${showGame ? "pointer-events-none md:pointer-events-auto" : ""}`}>
         {activeView === "friends" ? (
           <>
             <div className="h-16 px-4 flex items-center gap-2 border-b border-white/5 shrink-0 bg-bg/90 backdrop-blur-sm md:hidden">

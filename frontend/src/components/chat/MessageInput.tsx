@@ -174,7 +174,7 @@ export function MessageInput({ channelId, placeholder }: MessageInputProps) {
             placeholder={placeholder}
             onKeyDown={handleKeyDown}
             onInput={handleInput}
-            className="flex-1 bg-transparent text-foreground placeholder:text-dim text-sm resize-none outline-none max-h-30 leading-5 font-[Nunito]"
+            className="flex-1 bg-transparent text-foreground placeholder:text-dim text-base sm:text-sm resize-none outline-none max-h-30 leading-5 font-[Nunito]"
             style={{ height: "20px" }}
             disabled={isBusy}
           />
