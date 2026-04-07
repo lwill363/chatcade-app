@@ -43,7 +43,7 @@
     "@types/aws-lambda": "^8.10.159",
     "@types/bcryptjs": "^3.0.0",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^24.10.1",
+    "@types/node": "^25.5.2",
     "@types/pg": "^8.15.6",
     "dotenv": "^17.2.3",
     "eslint": "^9.39.1",

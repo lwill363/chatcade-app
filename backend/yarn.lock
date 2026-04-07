@@ -2015,12 +2015,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:^24.10.1":
-  version: 24.10.9
-  resolution: "@types/node@npm:24.10.9"
+"@types/node@npm:^25.5.2":
+  version: 25.5.2
+  resolution: "@types/node@npm:25.5.2"
   dependencies:
-    undici-types: "npm:~7.16.0"
-  checksum: 10c0/e9e436fcd2136bddb1bbe3271a89f4653910bcf6ee8047c4117f544c7905a106c039e2720ee48f28505ef2560e22fb9ead719f28bf5e075fdde0c1120e38e3b2
+    undici-types: "npm:~7.18.0"
+  checksum: 10c0/11e41a85401724cd1a4de6fb7bd4264ec46db10c09fc8cf8d41de4ede0a7063db458348f859ead4ec0929906aa26aaf45a5fef3aa59742ca0521cda9cee52377
   languageName: node
   linkType: hard
 
@@ -2559,7 +2559,7 @@ __metadata:
     "@types/aws-lambda": "npm:^8.10.159"
     "@types/bcryptjs": "npm:^3.0.0"
     "@types/jsonwebtoken": "npm:^9.0.10"
-    "@types/node": "npm:^24.10.1"
+    "@types/node": "npm:^25.5.2"
     "@types/pg": "npm:^8.15.6"
     bcryptjs: "npm:^3.0.3"
     dotenv: "npm:^17.2.3"
@@ -6412,6 +6412,13 @@ __metadata:
   version: 7.16.0
   resolution: "undici-types@npm:7.16.0"
   checksum: 10c0/3033e2f2b5c9f1504bdc5934646cb54e37ecaca0f9249c983f7b1fc2e87c6d18399ebb05dc7fd5419e02b2e915f734d872a65da2e3eeed1813951c427d33cc9a
+  languageName: node
+  linkType: hard
+
+"undici-types@npm:~7.18.0":
+  version: 7.18.2
+  resolution: "undici-types@npm:7.18.2"
+  checksum: 10c0/85a79189113a238959d7a647368e4f7c5559c3a404ebdb8fc4488145ce9426fcd82252a844a302798dfc0e37e6fb178ff481ed03bc4caf634c5757d9ef43521d
   languageName: node
   linkType: hard
 
