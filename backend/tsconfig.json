@@ -15,7 +15,7 @@
     "isolatedModules": false,
 
     // path aliases (baseUrl deprecated in TS5 but required for Node resolution until we migrate to node16)
-    "ignoreDeprecations": "5.0",
+    "ignoreDeprecations": "6.0",
     "baseUrl": "./src",
     "paths": {
       "@features/*": ["features/*"],
