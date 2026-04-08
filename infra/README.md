@@ -174,10 +174,12 @@ The workflow uses OIDC federation — no `AWS_ACCESS_KEY_ID` or `AWS_SECRET_ACCE
 
 | Variable                   | Default          | Description                              |
 | -------------------------- | ---------------- | ---------------------------------------- |
-| `project_name`             | `chatcade`       | Prefix for all resource names            |
-| `environment`              | `prod`           | Deployment environment                   |
-| `project_ssm_ps_root_path` | `/chatcade/prod` | SSM Parameter Store root path            |
-| `image_uri`                | —                | ECR image URI for the migration ECS task |
+| `project_name`             | `chatcade`       | Prefix for all resource names                              |
+| `environment`              | `prod`           | Deployment environment                                     |
+| `project_ssm_ps_root_path` | `/chatcade/prod` | SSM Parameter Store root path                              |
+| `image_uri`                | —                | ECR image URI for the migration ECS task                   |
+| `domain_name`              | `chatcade.net`   | Custom domain — Route 53 + ACM cert + CloudFront alias     |
+| `alarm_email`              | `""`             | Email for Lambda error alerts (leave empty to disable SNS) |
 
 ## Outputs
 
