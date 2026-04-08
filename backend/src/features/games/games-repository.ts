@@ -70,6 +70,19 @@ export function findActiveSoloGame(prisma: PrismaClient, userId: string) {
   });
 }
 
+export function findRecentFinishedSoloGame(prisma: PrismaClient, userId: string) {
+  return prisma.game.findFirst({
+    where: {
+      channelId: null,
+      vsBot: true,
+      status: "FINISHED",
+      players: { some: { userId } },
+    },
+    select: GAME_SELECT,
+    orderBy: { updatedAt: "desc" },
+  });
+}
+
 export function findGameById(prisma: PrismaClient, gameId: string) {
   return prisma.game.findUnique({
     where: { id: gameId },

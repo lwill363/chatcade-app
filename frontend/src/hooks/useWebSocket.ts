@@ -24,12 +24,23 @@ const WS_URL = import.meta.env.VITE_WS_URL as string | undefined;
 export function useWebSocket() {
   const dispatch = useAppDispatch();
   const accessToken = useAppSelector((s) => s.auth.accessToken);
+  const userId = useAppSelector((s) => s.auth.user?.id);
   const typingTimeouts = useRef(new Map<string, ReturnType<typeof setTimeout>>());
 
+  // Keep the stored token fresh so reconnect attempts after server-side
+  // disconnections always use the latest token. Does NOT trigger a reconnect.
+  const accessTokenRef = useRef(accessToken);
+  accessTokenRef.current = accessToken;
   useEffect(() => {
-    if (!accessToken || !WS_URL) return;
+    if (accessToken) wsService.updateToken(accessToken);
+  }, [accessToken]);
 
-    wsService.connect(WS_URL, accessToken);
+  useEffect(() => {
+    if (!userId || !WS_URL) return;
+    const token = accessTokenRef.current;
+    if (!token) return;
+
+    wsService.connect(WS_URL, token);
 
     const unsubscribeConnect = wsService.onConnect((isReconnect) => {
       if (isReconnect) {
@@ -136,5 +147,5 @@ export function useWebSocket() {
       for (const t of typingTimeouts.current.values()) clearTimeout(t);
       typingTimeouts.current.clear();
     };
-  }, [accessToken, dispatch]);
+  }, [userId, dispatch]);
 }

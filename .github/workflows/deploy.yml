@@ -175,10 +175,10 @@ jobs:
           # Give Lambdas time to fully initialize (VPC cold starts can take 10-20s)
           sleep 15
 
-      - name: Install Playwright browsers
+      - name: Install Playwright browsers and WebKit
         working-directory: frontend
         if: github.ref == 'refs/heads/main'
-        run: npx playwright install chromium --with-deps
+        run: npx playwright install chromium webkit --with-deps
 
       - name: Run E2E tests
         working-directory: frontend

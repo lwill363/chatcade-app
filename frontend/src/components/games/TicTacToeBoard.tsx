@@ -8,14 +8,14 @@ interface TicTacToeBoardProps {
 
 export function TicTacToeBoard({ board, disabled, onCellClick, winLine, size = "sm" }: TicTacToeBoardProps) {
   return (
-    <div className={`grid grid-cols-3 ${size === "lg" ? "gap-2" : "gap-1.5"}`}>
+    <div data-testid="tictactoe-board" className={`grid grid-cols-3 ${size === "lg" ? "gap-2" : "gap-1.5"}`}>
       {board.map((cell, i) => {
         const isWin = winLine?.includes(i) ?? false;
         const isEmpty = cell === null;
         return (
           <button
             key={i}
-            onPointerUp={() => onCellClick?.(i)}
+            onClick={() => onCellClick?.(i)}
             disabled={disabled || !isEmpty}
 
             className={`

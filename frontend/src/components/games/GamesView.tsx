@@ -42,7 +42,7 @@ export function GamesView() {
   const { data: soloGame, isLoading: isSoloLoading } = useGetActiveSoloGameQuery();
 
   const [createSoloGame, { isLoading: isCreating }] = useCreateSoloGameMutation();
-  const [makeMove, { isLoading: isMoving }] = useMakeMoveMutation();
+  const [makeMove, { isLoading: isMoving, isError: isMoveError }] = useMakeMoveMutation();
 
   const hasActiveSoloGame = soloGame != null && soloGame.status !== "FINISHED";
 
@@ -59,7 +59,7 @@ export function GamesView() {
   };
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 overflow-y-auto p-8" style={{ touchAction: "pan-y" }}>
+    <div className={`flex-1 flex flex-col min-h-0 p-8 ${screen === "playing" ? "overflow-hidden" : "overflow-y-auto"}`}>
       <h2
         className="text-foreground text-2xl font-extrabold mb-1"
         style={{ fontFamily: "'Fraunces', serif", fontStyle: "italic" }}
@@ -205,22 +205,17 @@ export function GamesView() {
 
       {/* ── Solo game board ───────────────────────────────────────────────────── */}
       {screen === "playing" && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-          <SoloGameBoard
-            game={soloGame ?? null}
-            isLoading={isSoloLoading}
-            isMoving={isMoving}
-            difficulty={difficulty}
-            onMove={(cellIndex) => soloGame && void makeMove({ gameId: soloGame.id, move: { cellIndex } })}
-            onPlayAgain={() => void startGame()}
-            onChangeDifficulty={() => setScreen("difficulty")}
-            onBack={() => setScreen("hub")}
-          />
-          <div className="flex flex-col gap-4">
-            <ComingSoonCard title="Chess" description="Full board chess with timers." icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 22H5v-2h14v2M9 6.2V3h6v3.2l2 2.8h-2v5h-2v-5h-.5v5H10.5v-5H9l2-2.8z" /></svg>} />
-            <ComingSoonCard title="Word Scramble" description="Race to unscramble words before your opponent." icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z" /></svg>} />
-          </div>
-        </div>
+        <SoloGameBoard
+          game={soloGame ?? null}
+          isLoading={isSoloLoading}
+          isMoving={isMoving}
+          isMoveError={isMoveError}
+          difficulty={difficulty}
+          onMove={(cellIndex) => soloGame && void makeMove({ gameId: soloGame.id, move: { cellIndex } })}
+          onPlayAgain={() => void startGame()}
+          onChangeDifficulty={() => setScreen("difficulty")}
+          onBack={() => setScreen("hub")}
+        />
       )}
     </div>
   );
@@ -279,6 +274,7 @@ interface SoloGameBoardProps {
   game: Game | null;
   isLoading: boolean;
   isMoving: boolean;
+  isMoveError: boolean;
   difficulty: Difficulty;
   onMove: (cellIndex: number) => void;
   onPlayAgain: () => void;
@@ -286,7 +282,7 @@ interface SoloGameBoardProps {
   onBack: () => void;
 }
 
-function SoloGameBoard({ game, isLoading, isMoving, difficulty, onMove, onPlayAgain, onChangeDifficulty, onBack }: SoloGameBoardProps) {
+function SoloGameBoard({ game, isLoading, isMoving, isMoveError, difficulty, onMove, onPlayAgain, onChangeDifficulty, onBack }: SoloGameBoardProps) {
   const board = ((game?.state.board ?? Array(9).fill(null)) as (string | null)[]);
   const isFinished = game?.status === "FINISHED";
   const isActive = game?.status === "ACTIVE";
@@ -344,6 +340,10 @@ function SoloGameBoard({ game, isLoading, isMoving, difficulty, onMove, onPlayAg
           size="lg"
         />
       </div>
+
+      {isMoveError && (
+        <p className="text-red-400 text-xs text-center">Move failed — please try again.</p>
+      )}
 
       <div className="flex gap-2 justify-center flex-wrap">
         {isFinished ? (

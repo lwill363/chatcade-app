@@ -312,6 +312,7 @@ locals {
     GAMES_PORT          = data.aws_ssm_parameter.games_port.value
     GAMES_SERVICE_NAME  = data.aws_ssm_parameter.games_service_name.value
     JWT_SECRET          = data.aws_ssm_parameter.jwt_secret.value
+    WS_CALLBACK_URL     = local.ws_callback_url
   }
 }
 

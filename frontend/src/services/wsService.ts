@@ -69,6 +69,12 @@ class WsService {
     };
   }
 
+  // Update the stored token without reconnecting — used when the access token
+  // is refreshed so that the next reconnect attempt uses the latest token.
+  updateToken(token: string) {
+    this.token = token;
+  }
+
   disconnect() {
     this.closed = true;
     this.stopPing();
@@ -76,8 +82,12 @@ class WsService {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
     }
-    this.ws?.close();
+    const ws = this.ws;
     this.ws = null;
+    if (ws) {
+      ws.onclose = null; // prevent the deferred onclose from scheduling a reconnect
+      ws.close();
+    }
   }
 
   send(data: object) {

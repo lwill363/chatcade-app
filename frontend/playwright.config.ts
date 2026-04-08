@@ -1,3 +1,4 @@
+/// <reference types="node" />
 import { defineConfig, devices } from "@playwright/test";
 
 export default defineConfig({
@@ -18,6 +19,10 @@ export default defineConfig({
     {
       name: "chromium",
       use: { ...devices["Desktop Chrome"] },
+    },
+    {
+      name: "mobile",
+      use: { ...devices["iPhone 13"], hasTouch: true },
     },
   ],
 });

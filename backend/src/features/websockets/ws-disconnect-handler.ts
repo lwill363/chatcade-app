@@ -22,6 +22,8 @@ export const handler: APIGatewayProxyWebsocketHandlerV2 = async (event) => {
         void broadcastPresence(prisma, wsConnectConfig.WS_CALLBACK_URL, conn.userId, false);
       }
     }
+  } catch (err) {
+    console.error(`[ws-disconnect] error for connection ${event.requestContext.connectionId}:`, err);
   } finally {
     await prisma.$disconnect();
   }

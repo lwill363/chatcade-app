@@ -19,7 +19,20 @@ export const gamesApi = api.injectEndpoints({
 
     createSoloGame: builder.mutation<Game, { difficulty: Difficulty }>({
       query: (body) => ({ url: "/api/games/solo", method: "POST", body }),
+      // Immediately write the created game into the solo-game cache so the
+      // board is enabled the instant the playing screen first renders.
+      // invalidatesTags triggers a background refetch as a consistency backstop.
       invalidatesTags: [{ type: "Game", id: "solo" }],
+      async onQueryStarted(_arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data: createdGame } = await queryFulfilled;
+          dispatch(
+            gamesApi.util.updateQueryData("getActiveSoloGame", undefined, () => createdGame)
+          );
+        } catch {
+          // creation failed — leave cache as-is
+        }
+      },
     }),
 
     // ── Channel game ──────────────────────────────────────────────────────────
@@ -59,6 +72,19 @@ export const gamesApi = api.injectEndpoints({
         channelId
           ? [{ type: "Game", id: `channel-${channelId}` }]
           : [{ type: "Game", id: "solo" }],
+      // For solo games, immediately apply the bot's response to the cache so
+      // the board re-enables for the next turn without waiting for a refetch.
+      async onQueryStarted({ channelId }, { dispatch, queryFulfilled }) {
+        if (channelId) return;
+        try {
+          const { data: updatedGame } = await queryFulfilled;
+          dispatch(
+            gamesApi.util.updateQueryData("getActiveSoloGame", undefined, () => updatedGame)
+          );
+        } catch {
+          // error will be visible via isMoveError in the UI
+        }
+      },
     }),
 
     forfeitGame: builder.mutation<Game, { gameId: string; channelId?: string }>({

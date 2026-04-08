@@ -140,14 +140,10 @@ export function applyMove(
     };
   }
 
-  // Advance turn: cycle through player positions
-  const positions = players.map((p) => p.position).sort((a, b) => a - b);
-  const currentPos = player.position;
-  const nextPos = positions[(positions.indexOf(currentPos) + 1) % positions.length];
-  const nextTurn = String(nextPos);
-
-  // Bot plays as position 2 (O)
-  if (vsBot && nextPos === 2) {
+  // Bot plays as position 2 (O) immediately after the human's move.
+  // The bot is never in the players array, so we check vsBot directly
+  // rather than deriving nextPos from players (which would only cycle back to 1).
+  if (vsBot) {
     const botCell = getBotMove(board, difficulty);
     board[botCell] = "O";
     const botWinner = checkWinner(board);
@@ -161,5 +157,8 @@ export function applyMove(
     };
   }
 
-  return { state: { board }, currentTurn: nextTurn, winnerId: null, winnerLabel: null, finished: false };
+  // Multiplayer (non-bot): cycle to the next player's position
+  const positions = players.map((p) => p.position).sort((a, b) => a - b);
+  const nextPos = positions[(positions.indexOf(player.position) + 1) % positions.length];
+  return { state: { board }, currentTurn: String(nextPos), winnerId: null, winnerLabel: null, finished: false };
 }

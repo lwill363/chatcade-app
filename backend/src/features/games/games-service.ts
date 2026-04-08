@@ -250,7 +250,9 @@ export async function getActiveChannelGames(userId: string, prisma: PrismaClient
 }
 
 export async function getActiveSoloGame(userId: string, prisma: PrismaClient) {
-  return GamesRepository.findActiveSoloGame(prisma, userId);
+  const active = await GamesRepository.findActiveSoloGame(prisma, userId);
+  if (active) return active;
+  return GamesRepository.findRecentFinishedSoloGame(prisma, userId);
 }
 
 export async function createSoloGame(

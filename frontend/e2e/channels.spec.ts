@@ -13,7 +13,8 @@ test.describe("Channels", () => {
     await deleteTestAccount(page);
   });
 
-  test("user can create a room and send a message", async ({ page }) => {
+  test("user can create a room and send a message", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name === "mobile", "Mobile layout hides sidebar after room creation — desktop only");
     user = makeTestUser();
     await registerAndLogin(page, user);
 
