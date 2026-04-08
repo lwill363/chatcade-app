@@ -8,12 +8,20 @@ updates:
   # Enable version updates for yarn(backend)
   - package-ecosystem: "npm" # See documentation for possible values
     directory: "/backend" # Location of package manifests
+    groups:
+      all-dependencies:
+        patterns:
+          - "*"
     schedule:
       interval: "weekly"
 
   # Enable version updates for yarn(frontend)
   - package-ecosystem: "npm" # See documentation for possible values
     directory: "/frontend" # Location of package manifests
+    groups:
+      all-dependencies:
+        patterns:
+          - "*"
     schedule:
       interval: "weekly"
 
@@ -21,6 +29,10 @@ updates:
   - package-ecosystem: "docker"
     # Look for a `Dockerfile` in the `root` directory
     directory: "/backend"
+    groups:
+      all-dependencies:
+        patterns:
+          - "*"
     # Check for updates once a week
     schedule:
       interval: "weekly"
@@ -28,7 +40,11 @@ updates:
   # Enable version updates for GitHub Actions
   - package-ecosystem: "github-actions"
     # Workflow files stored in the default location of `.github/workflows`
-    # You don't need to specify `/.github/workflows` for `directory`. You can use `directory: "/"`.
+    # You don't need to specify `/.github/workflows` for `directory`. You can use `directory: "/"
     directory: "/"
+    groups:
+      all-dependencies:
+        patterns:
+          - "*"
     schedule:
       interval: "weekly"
