@@ -59,7 +59,7 @@ export function GamesView() {
   };
 
   return (
-    <div className="flex-1 flex flex-col min-h-0 overflow-y-auto p-8">
+    <div className="flex-1 flex flex-col min-h-0 overflow-y-auto p-8" style={{ touchAction: "pan-y" }}>
       <h2
         className="text-foreground text-2xl font-extrabold mb-1"
         style={{ fontFamily: "'Fraunces', serif", fontStyle: "italic" }}

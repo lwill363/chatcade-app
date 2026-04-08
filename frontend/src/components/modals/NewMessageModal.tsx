@@ -4,6 +4,7 @@ import { selectChannel } from "@/features/ui/uiSlice";
 import { Modal } from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import { Avatar } from "@/components/ui/Avatar";
+import { Spinner } from "@/components/ui/Spinner";
 import { useSearchUsersQuery, useGetPresenceQuery } from "@/features/users/usersApi";
 import { useListChannelsQuery } from "@/features/channels/channelsApi";
 import { cn } from "@/lib/utils";
@@ -20,7 +21,7 @@ export function NewMessageModal({ isOpen, onClose, onOpenDm }: NewMessageModalPr
   const [tab, setTab] = useState<"people" | "rooms">("people");
   const [query, setQuery] = useState("");
 
-  const { data: users } = useSearchUsersQuery(query.trim(), {
+  const { data: users, isFetching: isSearching } = useSearchUsersQuery(query.trim(), {
     skip: tab !== "people" || query.trim().length < 2,
   });
 
@@ -89,13 +90,16 @@ export function NewMessageModal({ isOpen, onClose, onOpenDm }: NewMessageModalPr
       <div className="flex flex-col gap-1 mt-3 min-h-30">
         {tab === "people" && (
           <>
-            {query.trim().length >= 2 && users?.length === 0 && (
-              <p className="text-dim text-sm text-center py-6">No users found</p>
-            )}
             {query.trim().length < 2 && (
               <p className="text-dim text-xs text-center py-6">Type at least 2 characters to search</p>
             )}
-            {query.trim().length >= 2 && users?.map((user) => {
+            {query.trim().length >= 2 && isSearching && (
+              <div className="flex justify-center py-6"><Spinner size="sm" /></div>
+            )}
+            {query.trim().length >= 2 && !isSearching && users?.length === 0 && (
+              <p className="text-dim text-sm text-center py-6">No users found</p>
+            )}
+            {query.trim().length >= 2 && !isSearching && users?.map((user) => {
               const status = getStatus(user.id);
               return (
                 <button

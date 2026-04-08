@@ -15,8 +15,9 @@ export function TicTacToeBoard({ board, disabled, onCellClick, winLine, size = "
         return (
           <button
             key={i}
-            onClick={() => onCellClick?.(i)}
+            onPointerUp={() => onCellClick?.(i)}
             disabled={disabled || !isEmpty}
+
             className={`
               ${size === "lg" ? "w-20 h-20 text-2xl" : "w-14 h-14 text-xl"}
               rounded-xl font-bold flex items-center justify-center transition-all
