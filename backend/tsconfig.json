@@ -14,7 +14,8 @@
     "resolveJsonModule": true,
     "isolatedModules": false,
 
-    // path aliases
+    // path aliases (baseUrl deprecated in TS5 but required for Node resolution until we migrate to node16)
+    "ignoreDeprecations": "5.0",
     "baseUrl": "./src",
     "paths": {
       "@features/*": ["features/*"],
