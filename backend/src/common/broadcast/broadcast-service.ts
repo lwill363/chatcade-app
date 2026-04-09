@@ -1,4 +1,5 @@
 import { ApiGatewayManagementApiClient, PostToConnectionCommand, GoneException } from "@aws-sdk/client-apigatewaymanagementapi";
+import { NodeHttpHandler } from "@smithy/node-http-handler";
 import { PrismaClient } from "generated/prisma/client";
 import { findConnectionsByUserIds, deleteConnection } from "@features/websockets/ws-repository";
 
@@ -28,7 +29,10 @@ export async function broadcastToUsers(
   const connections = await findConnectionsByUserIds(prisma, userIds);
   if (connections.length === 0) return;
 
-  const client = new ApiGatewayManagementApiClient({ endpoint: callbackUrl });
+  const client = new ApiGatewayManagementApiClient({
+    endpoint: callbackUrl,
+    requestHandler: new NodeHttpHandler({ connectionTimeout: 2000, requestTimeout: 4000 }),
+  });
   const payload = Buffer.from(JSON.stringify(event));
 
   await Promise.all(

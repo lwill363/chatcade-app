@@ -1,5 +1,6 @@
 import { APIGatewayProxyWebsocketHandlerV2 } from "aws-lambda";
 import { ApiGatewayManagementApiClient, PostToConnectionCommand, GoneException } from "@aws-sdk/client-apigatewaymanagementapi";
+import { NodeHttpHandler } from "@smithy/node-http-handler";
 import { createPrismaClient } from "@common/utils/create-prisma-client";
 import { broadcastToChannel } from "@common/broadcast/broadcast-service";
 import { wsDefaultConfig } from "@features/websockets/ws-config";
@@ -18,7 +19,10 @@ export const handler: APIGatewayProxyWebsocketHandlerV2 = async (event) => {
   }
 
   const prisma = createPrismaClient(wsDefaultConfig.DATABASE_URL);
-  const client = new ApiGatewayManagementApiClient({ endpoint: wsDefaultConfig.WS_CALLBACK_URL });
+  const client = new ApiGatewayManagementApiClient({
+    endpoint: wsDefaultConfig.WS_CALLBACK_URL,
+    requestHandler: new NodeHttpHandler({ connectionTimeout: 2000, requestTimeout: 4000 }),
+  });
 
   try {
     const connection = await prisma.webSocketConnection.findUnique({

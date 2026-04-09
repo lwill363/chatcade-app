@@ -19,7 +19,7 @@ export const handler: APIGatewayProxyWebsocketHandlerV2 = async (event) => {
       // Only broadcast offline if user has no other active connections
       const remaining = await findConnectionsByUserIds(prisma, [conn.userId]);
       if (remaining.length === 0) {
-        void broadcastPresence(prisma, wsConnectConfig.WS_CALLBACK_URL, conn.userId, false);
+        await broadcastPresence(prisma, wsConnectConfig.WS_CALLBACK_URL, conn.userId, false);
       }
     }
   } catch (err) {

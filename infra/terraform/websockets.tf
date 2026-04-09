@@ -159,6 +159,34 @@ resource "aws_lambda_permission" "ws_default_invoke" {
 
 # ─── IAM: ws-default, messages, and channels can push messages back to WebSocket clients ──
 
+resource "aws_iam_role_policy" "ws_connect_manage_connections" {
+  name = "manage-websocket-connections"
+  role = module.ws_connect_lambda.role_name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = "execute-api:ManageConnections"
+      Resource = "${aws_apigatewayv2_api.ws.execution_arn}/*"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "ws_disconnect_manage_connections" {
+  name = "manage-websocket-connections"
+  role = module.ws_disconnect_lambda.role_name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = "execute-api:ManageConnections"
+      Resource = "${aws_apigatewayv2_api.ws.execution_arn}/*"
+    }]
+  })
+}
+
 resource "aws_iam_role_policy" "ws_default_manage_connections" {
   name = "manage-websocket-connections"
   role = module.ws_default_lambda.role_name
@@ -190,6 +218,20 @@ resource "aws_iam_role_policy" "messages_manage_connections" {
 resource "aws_iam_role_policy" "channels_manage_connections" {
   name = "manage-websocket-connections"
   role = module.channels_lambda.role_name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = "execute-api:ManageConnections"
+      Resource = "${aws_apigatewayv2_api.ws.execution_arn}/*"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "games_manage_connections" {
+  name = "manage-websocket-connections"
+  role = module.games_lambda.role_name
 
   policy = jsonencode({
     Version = "2012-10-17"

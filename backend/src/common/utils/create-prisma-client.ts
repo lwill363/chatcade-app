@@ -5,6 +5,7 @@ export function createPrismaClient(databaseUrl: string): PrismaClient {
   const adapter = new PrismaPg({
     connectionString: databaseUrl,
     ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
+    connectionTimeoutMillis: 5000,
   });
   return new PrismaClient({ adapter });
 }
