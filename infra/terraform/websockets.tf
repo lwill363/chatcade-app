@@ -201,6 +201,42 @@ resource "aws_iam_role_policy" "channels_manage_connections" {
   })
 }
 
+# ─── VPC Endpoint: execute-api ────────────────────────────────────────────────
+# Private subnet Lambdas have no internet route, so PostToConnectionCommand
+# would hang until Lambda timeout without this endpoint.
+# private_dns_enabled resolves *.execute-api.amazonaws.com URLs through the
+# endpoint automatically — no Lambda code changes required.
+
+resource "aws_security_group" "execute_api_endpoint" {
+  name        = "${var.project_name}-${var.environment}-execute-api-endpoint"
+  description = "Allow HTTPS from VPC for execute-api interface endpoint"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = [module.vpc.vpc_cidr]
+  }
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-execute-api-endpoint"
+  }
+}
+
+resource "aws_vpc_endpoint" "execute_api" {
+  vpc_id              = module.vpc.vpc_id
+  service_name        = "com.amazonaws.${var.region}.execute-api"
+  vpc_endpoint_type   = "Interface"
+  subnet_ids          = module.vpc.private_subnet_ids
+  security_group_ids  = [aws_security_group.execute_api_endpoint.id]
+  private_dns_enabled = true
+
+  tags = {
+    Name = "${var.project_name}-${var.environment}-execute-api-endpoint"
+  }
+}
+
 # ─── EventBridge: periodic stale connection cleanup ───────────────────────────
 
 resource "aws_cloudwatch_event_rule" "ws_cleanup" {
