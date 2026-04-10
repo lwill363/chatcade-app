@@ -58,8 +58,7 @@ class WsService {
       }
     };
 
-    ws.onclose = (event) => {
-      console.warn(`[WS] closed — code=${event.code} reason="${event.reason}" wasClean=${event.wasClean}`);
+    ws.onclose = () => {
       this.stopPing();
       if (!this.closed) {
         this.reconnectTimeout = setTimeout(() => {

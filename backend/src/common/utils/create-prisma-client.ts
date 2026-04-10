@@ -6,6 +6,7 @@ export function createPrismaClient(databaseUrl: string): PrismaClient {
     connectionString: databaseUrl,
     ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
     connectionTimeoutMillis: 5000,
+    max: 1,
   });
   return new PrismaClient({ adapter });
 }
