@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useAppDispatch, useAppSelector } from "@/app/hooks";
 import { selectChannel, setActiveView } from "@/features/ui/uiSlice";
 import { useListChannelsQuery } from "@/features/channels/channelsApi";
@@ -6,21 +6,13 @@ import {
   useGetActiveChannelGamesQuery,
   useGetActiveSoloGameQuery,
   useCreateSoloGameMutation,
-  useMakeMoveMutation,
   type Difficulty,
 } from "@/features/games/gamesApi";
-import { checkBoardWinner, getWinLine } from "@/features/games/tictactoe";
-import { TicTacToeBoard } from "@/components/games/TicTacToeBoard";
 import { Spinner } from "@/components/ui/Spinner";
-import type { Game } from "@/types";
+import { SoloTicTacToeGame } from "@/components/games/SoloTicTacToeGame";
+import { DIFFICULTY_META } from "@/features/games/games-config";
 
 type Screen = "hub" | "difficulty" | "playing";
-
-const DIFFICULTY_META: Record<Difficulty, { label: string; description: string; badge: string }> = {
-  EASY:   { label: "Easy",   description: "Bot plays randomly — you can definitely win!", badge: "bg-green-500/15 text-green-400" },
-  MEDIUM: { label: "Medium", description: "Bot plays optimally about half the time.",       badge: "bg-yellow-500/15 text-yellow-400" },
-  HARD:   { label: "Hard",   description: "Perfect play — best you can do is a draw.",      badge: "bg-red-500/15 text-red-400" },
-};
 
 const TTT_ICON = (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -42,7 +34,6 @@ export function GamesView() {
   const { data: soloGame, isLoading: isSoloLoading } = useGetActiveSoloGameQuery();
 
   const [createSoloGame, { isLoading: isCreating }] = useCreateSoloGameMutation();
-  const [makeMove, { isLoading: isMoving, isError: isMoveError }] = useMakeMoveMutation();
 
   const hasActiveSoloGame = soloGame != null && soloGame.status !== "FINISHED";
 
@@ -145,10 +136,10 @@ export function GamesView() {
           <p className="text-dim text-[11px] font-semibold uppercase tracking-wider mb-3">Solo play</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <TicTacToeInfoCard
-          hasActiveGame={hasActiveSoloGame}
-          onResume={() => setScreen("playing")}
-          onPlay={() => setScreen("difficulty")}
-        />
+              hasActiveGame={hasActiveSoloGame}
+              onResume={() => setScreen("playing")}
+              onPlay={() => setScreen("difficulty")}
+            />
             <ComingSoonCard title="Chess" description="Full board chess with timers. Coming later." icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 22H5v-2h14v2M9 6.2V3h6v3.2l2 2.8h-2v5h-2v-5h-.5v5H10.5v-5H9l2-2.8z" /></svg>} />
             <ComingSoonCard title="Word Scramble" description="Race to unscramble words before your opponent." icon={<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M4 6h16v2H4zm0 5h16v2H4zm0 5h16v2H4z" /></svg>} />
           </div>
@@ -203,15 +194,12 @@ export function GamesView() {
         </div>
       )}
 
-      {/* ── Solo game board ───────────────────────────────────────────────────── */}
+      {/* ── Solo game ─────────────────────────────────────────────────────────── */}
       {screen === "playing" && (
-        <SoloGameBoard
+        <SoloTicTacToeGame
           game={soloGame ?? null}
           isLoading={isSoloLoading}
-          isMoving={isMoving}
-          isMoveError={isMoveError}
           difficulty={difficulty}
-          onMove={(cellIndex) => soloGame && void makeMove({ gameId: soloGame.id, move: { cellIndex } })}
           onPlayAgain={() => void startGame()}
           onChangeDifficulty={() => setScreen("difficulty")}
           onBack={() => setScreen("hub")}
@@ -268,106 +256,9 @@ function TicTacToeInfoCard({ hasActiveGame, onResume, onPlay }: { hasActiveGame:
   );
 }
 
-// ── Solo game board ───────────────────────────────────────────────────────────
-
-interface SoloGameBoardProps {
-  game: Game | null;
-  isLoading: boolean;
-  isMoving: boolean;
-  isMoveError: boolean;
-  difficulty: Difficulty;
-  onMove: (cellIndex: number) => void;
-  onPlayAgain: () => void;
-  onChangeDifficulty: () => void;
-  onBack: () => void;
-}
-
-function SoloGameBoard({ game, isLoading, isMoving, isMoveError, difficulty, onMove, onPlayAgain, onChangeDifficulty, onBack }: SoloGameBoardProps) {
-  const board = ((game?.state.board ?? Array(9).fill(null)) as (string | null)[]);
-  const isFinished = game?.status === "FINISHED";
-  const isActive = game?.status === "ACTIVE";
-  const isMyTurn = isActive && game?.currentTurn === "1" && !isMoving;
-
-  const boardWinner = checkBoardWinner(board);
-  const winLine = isFinished && boardWinner ? getWinLine(board) : null;
-
-  const resultText = (() => {
-    if (!isFinished) return null;
-    if (boardWinner === "X") return "You win!";
-    if (boardWinner === "O") return "Bot wins!";
-    return "It's a draw!";
-  })();
-
-  const statusText = (() => {
-    if (isLoading) return "Loading...";
-    if (resultText) return resultText;
-    if (isMoving || game?.currentTurn === "2") return "Bot is thinking...";
-    return "Your turn — you are X";
-  })();
-
-  return (
-    <div className="bg-surface rounded-2xl border border-white/8 p-6 flex flex-col gap-5">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-[#1A1D2E] border border-white/8 flex items-center justify-center text-primary shrink-0">
-            {LARGE_TTT_ICON}
-          </div>
-          <div>
-            <h3 className="text-foreground font-bold text-base">Tic-Tac-Toe</h3>
-            <p className="text-muted text-xs mt-0.5">You are X — bot plays O</p>
-          </div>
-        </div>
-        <span className={`text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded-md ${DIFFICULTY_META[difficulty].badge}`}>
-          {DIFFICULTY_META[difficulty].label}
-        </span>
-      </div>
-
-      <p className={`text-sm font-medium text-center ${
-        resultText === "You win!" ? "text-primary" :
-        resultText === "Bot wins!" ? "text-red-400" :
-        resultText ? "text-muted" :
-        isMoving || game?.currentTurn === "O" ? "text-dim" : "text-foreground"
-      }`}>
-        {statusText}
-      </p>
-
-      <div className="mx-auto">
-        <TicTacToeBoard
-          board={board}
-          disabled={!isMyTurn}
-          onCellClick={onMove}
-          winLine={winLine}
-          size="lg"
-        />
-      </div>
-
-      {isMoveError && (
-        <p className="text-red-400 text-xs text-center">Move failed — please try again.</p>
-      )}
-
-      <div className="flex gap-2 justify-center flex-wrap">
-        {isFinished ? (
-          <>
-            <button onClick={onPlayAgain} className="px-5 py-2 rounded-xl bg-primary hover:bg-primary/90 text-white font-semibold text-sm cursor-pointer transition-colors">
-              Play Again
-            </button>
-            <button onClick={onChangeDifficulty} className="px-5 py-2 rounded-xl bg-[#2A2D42] hover:bg-[#363A55] text-foreground text-sm cursor-pointer transition-colors">
-              Change Difficulty
-            </button>
-          </>
-        ) : (
-          <button onClick={onBack} className="text-xs text-dim hover:text-muted cursor-pointer">
-            ← Back to games
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
 // ── Coming soon card ──────────────────────────────────────────────────────────
 
-function ComingSoonCard({ title, description, icon }: { title: string; description: string; icon: React.ReactNode }) {
+function ComingSoonCard({ title, description, icon }: { title: string; description: string; icon: ReactNode }) {
   return (
     <div className="bg-surface rounded-2xl border border-white/5 p-5 flex flex-col gap-3 opacity-50">
       <div className="flex items-start gap-3">

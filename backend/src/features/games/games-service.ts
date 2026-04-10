@@ -214,7 +214,7 @@ export async function forfeitGame(gameId: string, userId: string, prisma: Prisma
     const cancelled = game.players.length < 2;
     if (cancelled) {
       // No opponent ever joined — post "cancelled" instead of a result
-      await prisma.message.create({
+      const msg = await prisma.message.create({
         data: {
           type: "GAME_RESULT",
           content: "Tic-Tac-Toe was cancelled",
@@ -223,9 +223,8 @@ export async function forfeitGame(gameId: string, userId: string, prisma: Prisma
           metadata: { gameId, gameName: "Tic-Tac-Toe", winnerLabel: null, cancelled: true },
         },
         select: { id: true },
-      }).then((msg) =>
-        prisma.channel.update({ where: { id: game.channelId! }, data: { lastMessageId: msg.id } })
-      );
+      });
+      await prisma.channel.update({ where: { id: game.channelId }, data: { lastMessageId: msg.id } });
     } else {
       await postGameResult(
         prisma, game.channelId, userId, gameId, "Tic-Tac-Toe",

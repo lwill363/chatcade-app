@@ -10,10 +10,10 @@ const prismaPlugin = fp<PrismaPluginOptions>(async (server, options) => {
   const adapter = new PrismaPg({
     connectionString: options.databaseUrl,
     ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
+    connectionTimeoutMillis: 5000,
+    max: 1,
   });
   const prisma = new PrismaClient({ adapter });
-
-  await prisma.$connect();
 
   // Make Prisma Client available through the fastify server instance: server.prisma
   server.decorate("prisma", prisma);

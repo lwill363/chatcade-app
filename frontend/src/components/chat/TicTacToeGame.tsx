@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAppSelector } from "@/app/hooks";
 import {
   useGetActiveGameQuery,
@@ -26,6 +26,7 @@ export function TicTacToeGame({ channelId }: TicTacToeGameProps) {
   const [joinGame, { isLoading: isJoining }] = useJoinGameMutation();
   const [makeMove, { isLoading: isMoving, isError: isMoveError }] = useMakeMoveMutation();
   const [forfeitGame, { isLoading: isForfeiting }] = useForfeitGameMutation();
+  const [pendingBoard, setPendingBoard] = useState<(string | null)[] | null>(null);
 
   const gameRef = useRef(game);
   const forfeitRef = useRef(forfeitGame);
@@ -69,11 +70,29 @@ export function TicTacToeGame({ channelId }: TicTacToeGameProps) {
     );
   }
 
-  const board = (game.state.board ?? []) as (string | null)[];
+  const serverBoard = (game.state.board ?? []) as (string | null)[];
+  const board = pendingBoard ?? serverBoard;
   const myPlayer = game.players.find((p) => p.user.id === currentUser?.id);
   const isParticipant = !!myPlayer;
+  const isBotThinking = game.vsBot && (isMoving || pendingBoard !== null);
   const isMyTurn = isParticipant && game.status === "ACTIVE" &&
-    game.currentTurn === String(myPlayer.position);
+    game.currentTurn === String(myPlayer.position) && !isBotThinking;
+
+  const handleCellClick = async (i: number) => {
+    if (!myPlayer) return;
+    if (game.vsBot) {
+      const mark = myPlayer.position === 1 ? "X" : "O";
+      setPendingBoard(serverBoard.map((cell, idx) => idx === i ? mark : cell));
+      try {
+        await makeMove({ gameId: game.id, channelId, move: { cellIndex: i } }).unwrap();
+        await new Promise<void>((resolve) => setTimeout(resolve, 700));
+      } finally {
+        setPendingBoard(null);
+      }
+    } else {
+      void makeMove({ gameId: game.id, channelId, move: { cellIndex: i } });
+    }
+  };
 
   const player1 = game.players.find((p) => p.position === 1);
   const player2 = game.players.find((p) => p.position === 2);
@@ -130,7 +149,11 @@ export function TicTacToeGame({ channelId }: TicTacToeGameProps) {
 
   // Active game
   const turnPlayer = game.players.find((p) => String(p.position) === game.currentTurn);
-  const turnLabel = isMyTurn ? "Your turn" : `${turnPlayer?.user.username ?? "Opponent"}'s turn`;
+  const turnLabel = isBotThinking
+    ? "Bot is thinking..."
+    : isMyTurn
+    ? "Your turn"
+    : `${turnPlayer?.user.username ?? "Opponent"}'s turn`;
 
   return (
     <div className="flex flex-col items-center gap-3 py-4">
@@ -156,8 +179,8 @@ export function TicTacToeGame({ channelId }: TicTacToeGameProps) {
 
       <TicTacToeBoard
         board={board}
-        disabled={!isMyTurn || isMoving}
-        onCellClick={(i) => void makeMove({ gameId: game.id, channelId, move: { cellIndex: i } })}
+        disabled={!isMyTurn}
+        onCellClick={(i) => void handleCellClick(i)}
       />
 
       {isParticipant && (
