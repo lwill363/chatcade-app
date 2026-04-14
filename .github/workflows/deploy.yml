@@ -14,43 +14,18 @@ permissions:
   id-token: write
   contents: read
 
+env:
+  DATABASE_URL: "postgresql://user:password@localhost:5432/dummy"
+  AWS_REGION: us-east-1
+  APP_NAME: chatcade
+  APP_ENV: prod
+
 jobs:
-  deploy:
+  test:
     runs-on: ubuntu-latest
-
-    env:
-      # Dummy DATABASE_URL for prisma generate (no DB connection required)
-      DATABASE_URL: "postgresql://user:password@localhost:5432/dummy"
-      AWS_REGION: us-east-1
-      APP_NAME: chatcade
-      APP_ENV: prod
-
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v6
-        with:
-          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubTerraformRole
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Get AWS Account ID
-        run: echo "ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)" >> $GITHUB_ENV
-
-      - name: Get image uri
-        run: echo "BASE_IMAGE_URI=$ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$APP_NAME:$APP_NAME" >> $GITHUB_ENV
-
-      - name: Login to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Build and push image
-        working-directory: backend
-        if: github.ref == 'refs/heads/main'
-        run: |
-          docker build -t $BASE_IMAGE_URI-latest -t $BASE_IMAGE_URI-${{ github.sha }} .
-          docker push $BASE_IMAGE_URI-latest
-          docker push $BASE_IMAGE_URI-${{ github.sha }}
 
       - name: Enable Corepack
         run: corepack enable
@@ -59,6 +34,10 @@ jobs:
         uses: actions/setup-node@v6
         with:
           node-version: 24
+          cache: "yarn"
+          cache-dependency-path: |
+            backend/yarn.lock
+            frontend/yarn.lock
 
       - name: Install backend deps
         working-directory: backend
@@ -72,7 +51,7 @@ jobs:
         working-directory: backend
         run: yarn test --run
 
-      - name: Install frontend deps (for tests)
+      - name: Install frontend deps
         working-directory: frontend
         run: yarn install --immutable
 
@@ -80,17 +59,67 @@ jobs:
         working-directory: frontend
         run: yarn test --run
 
+  build:
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    outputs:
+      base_image_uri: ${{ steps.image_uri.outputs.base_image_uri }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubTerraformRole
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Get AWS Account ID
+        id: account
+        run: echo "account_id=$(aws sts get-caller-identity --query Account --output text)" >> $GITHUB_OUTPUT
+
+      - name: Set image URI
+        id: image_uri
+        run: echo "base_image_uri=${{ steps.account.outputs.account_id }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.APP_NAME }}:${{ env.APP_NAME }}" >> $GITHUB_OUTPUT
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push Docker image
+        working-directory: backend
+        run: |
+          docker build \
+            -t ${{ steps.image_uri.outputs.base_image_uri }}-latest \
+            -t ${{ steps.image_uri.outputs.base_image_uri }}-${{ github.sha }} .
+          docker push ${{ steps.image_uri.outputs.base_image_uri }}-latest
+          docker push ${{ steps.image_uri.outputs.base_image_uri }}-${{ github.sha }}
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: "yarn"
+          cache-dependency-path: backend/yarn.lock
+
+      - name: Install backend deps
+        working-directory: backend
+        run: yarn install --immutable
+
+      - name: Generate prisma client
+        working-directory: backend
+        run: yarn prisma generate
+
       - name: Build Lambdas
         run: |
           cd backend
-
           mkdir -p dist
-
           find src/features -name "*-handler.ts" | while read handler; do
             name=$(basename "$handler" | sed 's/-handler.ts//')
-
             mkdir -p "dist/$name"
-
             yarn dlx esbuild "$handler" \
               --bundle \
               --platform=node \
@@ -101,10 +130,43 @@ jobs:
       - name: Zip Lambdas
         run: |
           cd backend/dist
-
           for dir in *; do
             (cd "$dir" && zip -r "../$dir.zip" .)
           done
+
+      - name: Upload Lambda zips
+        uses: actions/upload-artifact@v7
+        with:
+          name: lambda-zips
+          path: backend/dist/*.zip
+
+  infra:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    outputs:
+      public_subnet_ids: ${{ steps.tfout.outputs.public_subnet_ids }}
+      migration_ecs_security_group_id: ${{ steps.tfout.outputs.migration_ecs_security_group_id }}
+      api_gateway_url: ${{ steps.tfout.outputs.api_gateway_url }}
+      ws_url: ${{ steps.tfout.outputs.ws_url }}
+      frontend_bucket: ${{ steps.tfout.outputs.frontend_bucket }}
+      frontend_distribution_id: ${{ steps.tfout.outputs.frontend_distribution_id }}
+      frontend_url: ${{ steps.tfout.outputs.frontend_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubTerraformRole
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Download Lambda zips
+        uses: actions/download-artifact@v6
+        with:
+          name: lambda-zips
+          path: backend/dist/
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v4
@@ -115,17 +177,19 @@ jobs:
 
       - name: Terraform Plan
         working-directory: infra/terraform
-        run: terraform plan -var="image_uri=$BASE_IMAGE_URI-${{ github.sha }}" -var="alarm_email=${{ secrets.ALARM_EMAIL }}" -out=tfplan
+        run: |
+          terraform plan \
+            -var="image_uri=${{ needs.build.outputs.base_image_uri }}-${{ github.sha }}" \
+            -var="alarm_email=${{ secrets.ALARM_EMAIL }}" \
+            -out=tfplan
 
       - name: Terraform Apply
         working-directory: infra/terraform
-        if: github.ref == 'refs/heads/main'
         run: terraform apply tfplan
 
       - name: Get Terraform Outputs
         id: tfout
         working-directory: infra/terraform
-        if: github.ref == 'refs/heads/main'
         run: |
           echo "public_subnet_ids=$(terraform output -json public_subnet_ids | jq -r '.[]' | paste -sd, -)" >> $GITHUB_OUTPUT
           echo "migration_ecs_security_group_id=$(terraform output migration_ecs_security_group_id)" >> $GITHUB_OUTPUT
@@ -135,58 +199,77 @@ jobs:
           echo "frontend_distribution_id=$(terraform output -raw frontend_distribution_id)" >> $GITHUB_OUTPUT
           echo "frontend_url=$(terraform output -raw frontend_url)" >> $GITHUB_OUTPUT
 
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [build, infra]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/GitHubTerraformRole
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: "yarn"
+          cache-dependency-path: frontend/yarn.lock
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: yarn install --immutable
+
       - name: Build frontend
         working-directory: frontend
-        if: github.ref == 'refs/heads/main'
         env:
-          VITE_WS_URL: ${{ steps.tfout.outputs.ws_url }}
+          VITE_WS_URL: ${{ needs.infra.outputs.ws_url }}
         run: yarn build
 
       - name: Deploy frontend to S3 and invalidate CloudFront
-        if: github.ref == 'refs/heads/main'
         run: |
-          aws s3 sync frontend/dist/ s3://${{ steps.tfout.outputs.frontend_bucket }}/ --delete
+          aws s3 sync frontend/dist/ s3://${{ needs.infra.outputs.frontend_bucket }}/ --delete
           aws cloudfront create-invalidation \
-            --distribution-id ${{ steps.tfout.outputs.frontend_distribution_id }} \
+            --distribution-id ${{ needs.infra.outputs.frontend_distribution_id }} \
             --paths "/*"
 
       - name: Run migrations
-        if: github.ref == 'refs/heads/main'
         run: |
           aws ecs run-task \
-            --cluster $APP_NAME-$APP_ENV-migration-ecs-ecs-cluster \
-            --task-definition $APP_NAME-$APP_ENV-migration-ecs-ecs-task \
+            --cluster ${{ env.APP_NAME }}-${{ env.APP_ENV }}-migration-ecs-ecs-cluster \
+            --task-definition ${{ env.APP_NAME }}-${{ env.APP_ENV }}-migration-ecs-ecs-task \
             --launch-type FARGATE \
             --network-configuration "awsvpcConfiguration={
-              subnets=[${{ steps.tfout.outputs.public_subnet_ids }}],
-              securityGroups=[${{ steps.tfout.outputs.migration_ecs_security_group_id }}],
+              subnets=[${{ needs.infra.outputs.public_subnet_ids }}],
+              securityGroups=[${{ needs.infra.outputs.migration_ecs_security_group_id }}],
               assignPublicIp=ENABLED
             }"
 
       - name: Warm up Lambdas
-        if: github.ref == 'refs/heads/main'
         run: |
-          API="${{ steps.tfout.outputs.api_gateway_url }}"
-          # Hit each Lambda with an unauthenticated request to force cold starts
-          # before Playwright tests run. 401s are expected and fine.
+          API="${{ needs.infra.outputs.api_gateway_url }}"
           curl -sf "$API/api/auth/me" || true
           curl -sf "$API/api/channels" || true
           curl -sf "$API/api/friends" || true
           curl -sf "$API/api/games" || true
           curl -sf -X POST "$API/api/channels/warmup/messages" || true
-          # Give Lambdas time to fully initialize (VPC cold starts can take 10-20s)
           sleep 15
 
-      - name: Install Playwright browsers and WebKit
+      - name: Install Playwright browsers
         working-directory: frontend
-        if: github.ref == 'refs/heads/main'
         run: npx playwright install chromium webkit --with-deps
 
       - name: Run E2E tests
         working-directory: frontend
-        if: github.ref == 'refs/heads/main'
         env:
-          PLAYWRIGHT_BASE_URL: ${{ steps.tfout.outputs.frontend_url }}
+          PLAYWRIGHT_BASE_URL: ${{ needs.infra.outputs.frontend_url }}
         run: yarn test:e2e
 
       - name: Upload Playwright report
