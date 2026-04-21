@@ -163,7 +163,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Download Lambda zips
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v8
         with:
           name: lambda-zips
           path: backend/dist/
