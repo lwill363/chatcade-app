@@ -270,7 +270,11 @@ resource "aws_vpc_endpoint" "execute_api" {
   vpc_id              = module.vpc.vpc_id
   service_name        = "com.amazonaws.${var.region}.execute-api"
   vpc_endpoint_type   = "Interface"
-  subnet_ids          = module.vpc.private_subnet_ids
+  # Single AZ to avoid ~$7-8/month per AZ cost. Lambdas in other AZs route
+  # cross-AZ to reach the endpoint (~1-2ms latency, negligible data charges).
+  # Tradeoff: PostToConnection fails if this AZ goes down, but that's acceptable
+  # for this project.
+  subnet_ids          = [module.vpc.private_subnet_ids[0]]
   security_group_ids  = [aws_security_group.execute_api_endpoint.id]
   private_dns_enabled = true
 
