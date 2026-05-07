@@ -12,6 +12,7 @@ updates:
       all-dependencies:
         patterns:
           - "*"
+    rebase-strategy: "auto"
     schedule:
       interval: "weekly"
 
@@ -22,6 +23,7 @@ updates:
       all-dependencies:
         patterns:
           - "*"
+    rebase-strategy: "auto"
     schedule:
       interval: "weekly"
 
@@ -34,6 +36,7 @@ updates:
         patterns:
           - "*"
     # Check for updates once a week
+    rebase-strategy: "auto"
     schedule:
       interval: "weekly"
 
@@ -46,5 +49,6 @@ updates:
       all-dependencies:
         patterns:
           - "*"
+    rebase-strategy: "auto"
     schedule:
       interval: "weekly"
