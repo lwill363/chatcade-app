@@ -1,5 +1,5 @@
 # -------- BUILD STAGE --------
-FROM amazonlinux:2023 AS builder
+FROM amazonlinux:2023.12.20260724.0 AS builder
 
 ARG DATABASE_URL="postgresql://user:password@localhost:5432/dummy"
 ENV DATABASE_URL=$DATABASE_URL
